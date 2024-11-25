@@ -1,8 +1,8 @@
 import streamlit as st
 
 # Define the pages
-dashboard = st.Page("routes/dashboard.py", title="Dashboard", icon=":material/dashboard:")
-experiment_details = st.Page("routes/experiment_details.py", title="Experiment Details", icon=":material/description:")
+dashboard = st.Page("pages/dashboard.py", title="Dashboard", icon=":material/dashboard:")
+experiment_details = st.Page("pages/experiment_details.py", title="Experiment Details", icon=":material/description:")
 
 # Set up navigation
 pg = st.navigation([dashboard, experiment_details])

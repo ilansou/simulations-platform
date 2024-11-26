@@ -6,6 +6,7 @@ certifi==2024.8.30
 charset-normalizer==3.4.0
 click==8.1.7
 colorama==0.4.6
+dnspython==2.7.0
 gitdb==4.0.11
 GitPython==3.1.43
 idna==3.10
@@ -24,6 +25,7 @@ protobuf==5.28.3
 pyarrow==18.0.0
 pydeck==0.9.1
 Pygments==2.18.0
+pymongo==4.10.1
 python-dateutil==2.9.0.post0
 pytz==2024.2
 referencing==0.35.1

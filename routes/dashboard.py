@@ -9,7 +9,6 @@ client = MongoClient("mongodb://localhost:27017")
 db = client["experiment_db"]
 experiments_collection = db["experiments"]
 
-
 def fetch_all_experiments():
     try:
         experiments = list(experiments_collection.find())
@@ -19,7 +18,6 @@ def fetch_all_experiments():
     except Exception as e:
         st.error(f"Error fetching experiments: {e}")
         return []
-
 
 def create_new_simulation(simulation_name, params):
     try:
@@ -37,14 +35,13 @@ def create_new_simulation(simulation_name, params):
     except Exception as e:
         st.error(f"Error creating new simulation: {e}")
 
-
 def main():
     st.title("Simulation Dashboard")
-
+    
     # New Simulation button
     if st.button("New Simulation"):
         st.session_state.new_simulation_modal = True
-
+    
     # Modal for creating a new simulation
     if st.session_state.get("new_simulation_modal", False):
         placeholder = st.empty()
@@ -72,7 +69,7 @@ def main():
             create_new_simulation(simulation_name, params)
             placeholder.empty()
             st.session_state.new_simulation_modal = False
-
+    
     # Fetch all experiments
     experiments = fetch_all_experiments()
 
@@ -82,21 +79,19 @@ def main():
         df = df[["_id", "simulation_name", "date", "params", "state"]]
         df.rename(columns={"state": "Is Running?"}, inplace=True)
         df["Is Running?"] = df["Is Running?"].apply(lambda x: "✔" if x == "Running" else "✘")
-
+        
         # Create a clickable link for the simulation name
         df['simulation_name'] = df.apply(
             lambda row: f'<a href="/experiment_details?simulation_id={row["_id"]}">{row["simulation_name"]}</a>', axis=1
         )
-
+        
         # Create actions column within the DataFrame
         action_options = ['', 'Re-Run', 'Edit', 'Delete']  # Consistent options
-        df['Actions'] = ''  # Initialize the Actions column. Important to avoid errors.
+        df['Actions'] = '' # Initialize the Actions column. Important to avoid errors.
 
-        st.markdown(
-            df[['simulation_name', 'date', 'params', 'Is Running?', 'Actions']].to_html(escape=False, index=False),
-            unsafe_allow_html=True)
-
-        # Action Selection
+        st.markdown(df[['simulation_name', 'date', 'params', 'Is Running?', 'Actions']].to_html(escape=False, index=False), unsafe_allow_html=True)
+        
+        #Action Selection
         for index, row in df.iterrows():
             df.at[index, 'Actions'] = st.selectbox(
                 'Select Action',
@@ -117,6 +112,6 @@ def handle_action_change(action, simulation_id):
     elif action == "Delete":
         experiments_collection.delete_one({"_id": ObjectId(simulation_id)})
         st.rerun()
-
-
+             
+             
 main()

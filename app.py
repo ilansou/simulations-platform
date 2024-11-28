@@ -8,6 +8,6 @@ experiment_details = st.Page("routes/experiment_details.py", title="Experiment D
 pg = st.navigation([dashboard, experiment_details])
 
 # Set page configuration
-st.set_page_config(page_title="Simulation Manager", page_icon=":material/science:", layout="wide") 
+st.set_page_config(page_title="Simulation Manager", page_icon=":material/science:", layout="wide")
 
 pg.run()

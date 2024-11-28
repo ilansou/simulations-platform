@@ -42,7 +42,6 @@ def main():
     if st.button("New Simulation"):
         st.session_state.new_simulation_modal = True
     
-    
     # Modal for creating a new simulation
     if st.session_state.get("new_simulation_modal", False):
         placeholder = st.empty()

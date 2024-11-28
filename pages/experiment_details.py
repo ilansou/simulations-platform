@@ -13,6 +13,7 @@ experiments_collection = db["experiments"]
 print(f"Connected to database: {db.name}")
 print(f"Using collection: {experiments_collection.name}")
 
+
 def fetch_experiment_details(simulation_id):
     try:
         experiment = experiments_collection.find_one({"_id": ObjectId(simulation_id)})
@@ -25,6 +26,7 @@ def fetch_experiment_details(simulation_id):
     except Exception as e:
         st.error(f"Error fetching experiment details: {e}")
         return None
+
 
 # Function to handle re-running an experiment
 def re_run_experiment(simulation_id):
@@ -46,6 +48,7 @@ def re_run_experiment(simulation_id):
     except Exception as e:
         st.error(f"Error re-running experiment: {e}")
 
+
 # Function to handle saving edited experiments
 def save_edited_experiment(simulation_id):
     try:
@@ -64,6 +67,7 @@ def save_edited_experiment(simulation_id):
     except Exception as e:
         st.error(f"Error updating experiment: {e}")
 
+
 def delete_experiment(simulation_id):
     try:
         experiments_collection.delete_one({"_id": ObjectId(simulation_id)})
@@ -73,11 +77,12 @@ def delete_experiment(simulation_id):
     except Exception as e:
         st.error(f"Error deleting experiment: {e}")
 
+
 def display_experiment(simulation_id):
     # Fetch experiment details if not already loaded
     if "experiment" not in st.session_state or not st.session_state.experiment:
         st.session_state.experiment = fetch_experiment_details(simulation_id)
-            
+
     if st.session_state.experiment:
         experiment = st.session_state.experiment
 
@@ -99,14 +104,13 @@ def display_experiment(simulation_id):
         }
         st.write(pd.DataFrame([params_dict]))
 
-        col1, col2, col3 = st.columns([1,1,1])
+        col1, col2, col3 = st.columns([1, 1, 1])
         with col1:
             st.button("Re-run", on_click=lambda: re_run_experiment(simulation_id))
         with col2:
             st.button("Edit", on_click=lambda: st.session_state.update(show_modal=True))
         with col3:
             st.button("Delete", on_click=lambda: delete_experiment(simulation_id))
-            
 
         # Modal for editing
         if st.session_state.get("show_modal", False):
@@ -115,16 +119,17 @@ def display_experiment(simulation_id):
                 st.text_input("Num Jobs", key="num_jobs", value=params_array[0])
                 st.selectbox("Num Cores", [1, 4, 8], key="num_cores", index=int(params_array[1]) // 4)
                 st.selectbox("Ring Size", [2, 4, 8], key="ring_size", index=int(params_array[2]) // 2)
-                st.selectbox("Routing Algorithm", ["ecmp", "ilp_solver", "simulated_annealing"], key="routing", index=["ecmp", "ilp_solver", "simulated_annealing"].index(params_array[3]))
+                st.selectbox("Routing Algorithm", ["ecmp", "ilp_solver", "simulated_annealing"], key="routing",
+                             index=["ecmp", "ilp_solver", "simulated_annealing"].index(params_array[3]))
                 st.text_input("Seed", key="seed", value=params_array[4])
                 st.form_submit_button("Save", on_click=lambda: save_edited_experiment(simulation_id))
 
-    
+
 def main():
     st.title("Experiment Details")
     if st.button("Home"):
-        st.switch_page("dashboard.py")
-    
+        st.switch_page("routes/dashboard.py")
+
     # Get simulation_id from URL
     simulation_id = st.query_params["simulation_id"] if "simulation_id" in st.query_params else None
 
@@ -132,8 +137,6 @@ def main():
         display_experiment(simulation_id)
     else:
         st.error("Simulation ID is missing from the URL.")
-        
+
 
 main()
-# if __name__ == "__main__":
-#     main()

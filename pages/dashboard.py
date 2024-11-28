@@ -1,287 +1,122 @@
 import streamlit as st
 import pandas as pd
-import requests
-import jwt
+from datetime import datetime
+from pymongo import MongoClient
+from bson import ObjectId
+
+# MongoDB connection
+client = MongoClient("mongodb://localhost:27017")
+db = client["experiment_db"]
+experiments_collection = db["experiments"]
 
 
-def get_user_id(token):
-    """
-    This function decodes a JWT (JSON Web Token) and extracts the 'user_id' from it.
-    The decoding skips signature verification for simplicity.
-    If the 'user_id' key is not present in the decoded token, it returns an empty string.
-
-    Args:
-        token (str): The JWT string to be decoded.
-
-    Returns:
-        str: The 'user_id' extracted from the token, or an empty string if not found.
-    """
-    decoded_token = jwt.decode(token, options={"verify_signature": False})
-    return decoded_token.get('user_id', '')
-
-
-def fetch_simulations(user_id):
-    """
-    This function sends a POST request to fetch simulation routes for a given user.
-    It communicates with an API endpoint 'http://localhost:8000/api/get_simulation_routes'
-    by sending the 'user_id' in the request payload.
-
-    In case of any request exception, it logs an error message and returns an empty list.
-
-    Args:
-        user_id (str): The ID of the user for whom the simulation routes are fetched.
-
-    Returns:
-        list: The simulation routes data as a list (parsed from the JSON response),
-              or an empty list if an error occurs during the request.
-    """
+def fetch_all_experiments():
     try:
-        response = requests.post("http://localhost:8000/api/get_simulation_routes", json={'user_id': user_id})
-        response.raise_for_status()
-        simulation = response.json()
-        return simulation
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error fetching simulations: {e}")
+        experiments = list(experiments_collection.find())
+        for experiment in experiments:
+            experiment['_id'] = str(experiment['_id'])  # Convert ObjectId to string
+        return experiments
+    except Exception as e:
+        st.error(f"Error fetching experiments: {e}")
         return []
 
 
-def create_simulation(params, user_id):
-    """
-    This function sends a POST request to create a new simulation using the provided parameters
-    and the user ID. It communicates with the API endpoint 'http://localhost:8000/api/simulate_flood_dns'.
-
-    Args:
-        params (dict): The parameters needed to create the simulation.
-        user_id (str): The ID of the user creating the simulation.
-
-    Returns:
-        list: The data from the API response if successful, or an empty list if an error occurs.
-    """
+def create_new_simulation(simulation_name, params):
     try:
-        response = requests.post("http://localhost:8000/api/simulate_flood_dns",json={"parms": params, "user_id": user_id})
-        response.raise_for_status()
-        return response.json().get('data', [])
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error creating simulations: {e}")
-        return []
-
-
-def update_simulation(params, simulation_id, user_id):
-    """
-    This function sends a POST request to update an existing simulation with new parameters.
-    It communicates with the API endpoint 'http://localhost:8000/api/simulation_update'.
-
-    Args:
-        params (dict): The updated parameters for the simulation.
-        simulation_id (str): The ID of the simulation to update.
-        user_id (str): The ID of the user performing the update.
-
-    Returns:
-        list: The updated data from the API response if successful, or an empty list if an error occurs.
-    """
-    try:
-        response = requests.post("http://localhost:8000/api/simulation_update", json={"parms": params, "simulation_id": simulation_id, "user_id": user_id})
-        response.raise_for_status()
-        return response.json().get('data', [])
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error updating simulation: {e}")
-        return []
-
-
-def rerun_simulation(path, simulation_id, user_id):
-    """
-    This function sends a POST request to re-run a simulation with the specified data and simulation ID.
-    It communicates with the API endpoint 'http://localhost:8000/api/re_run_simulation'.
-
-    Args:
-        path (str): The path to the simulation data.
-        simulation_id (str): The ID of the simulation to re-run.
-        user_id (str): The ID of the user requesting the re-run.
-
-    Returns:
-        bool: True if the re-run request is successful, or False if an error occurs.
-    """
-    try:
-        response = requests.post("http://localhost:8000/api/re_run_simulation", json={"data": path, "simulation_id": simulation_id, "user_id": user_id})
-        response.raise_for_status()
-        return True
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error re-running simulation: {e}")
-        return False
-
-
-def delete_solution(simulation_id, user_id):
-    """
-    This function sends a POST request to delete a simulation with the given simulation ID.
-    It communicates with the API endpoint 'http://localhost:8000/api/delte_simulation'.
-
-    Args:
-        simulation_id (str): The ID of the simulation to be deleted.
-        user_id (str): The ID of the user requesting the deletion.
-
-    Returns:
-        bool: True if the deletion request is successful, or False if an error occurs.
-    """
-    try:
-        response = requests.post("http://localhost:8000/api/delte_simulation", json={"data": simulation_id, "user_id": user_id})
-        response.raise_for_status()
-        return True
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error deleting simulation {e}")
-        return False
+        new_experiment = {
+            "simulation_name": simulation_name,
+            "params": params,
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "start_time": datetime.now().isoformat(),
+            "end_time": None,
+            "state": "Running",
+        }
+        experiments_collection.insert_one(new_experiment)
+        st.success("New simulation created successfully!")
+        st.rerun()
+    except Exception as e:
+        st.error(f"Error creating new simulation: {e}")
 
 
 def main():
-    """
-    This function is the entry point for the Streamlit-based "Simulations Dashboard" application.
-    It provides a user interface for managing simulations, including viewing, creating, updating,
-    re-running, and deleting simulations.
-
-    Functionality:
-    - Displays a login page if the user is not authenticated using a JWT token.
-    - Decodes the JWT token to extract the user ID and fetches associated simulations.
-    - Allows the user to perform the following actions:
-        1. View and search simulations.
-        2. View details of a selected simulation.
-        3. Re-run, edit, or delete an existing simulation.
-        4. Create a new simulation with custom parameters.
-    - Provides a logout option to clear the session.
-
-    Features:
-    - Uses Streamlit widgets for a clean and interactive UI.
-    - Displays data in a DataFrame for easy searching and visualization.
-    - Supports dynamic updates and actions on simulations via API endpoints.
-
-    Steps:
-    1. Checks if a JWT token is available in the session state; if not, prompts the user to log in.
-    2. Fetches and displays simulations for the logged-in user.
-    3. Offers a sidebar menu for navigation between actions (view, create, etc.).
-    4. Executes selected actions based on user inputs.
-
-    Args:
-        None
-
-    Returns:
-        None
-    """
     st.title("Simulation Dashboard")
 
-    # Check if 'token' is in session_state
-    if 'token' not in st.session_state:
-        st.session_state['token'] = ''
+    # New Simulation button
+    if st.button("New Simulation"):
+        st.session_state.new_simulation_modal = True
 
-    # Check if user is logged in
-    if st.session_state['token'] == '':
-        st.info("Please enter your JWT token to continue.")
-        token_input = st.text_input("JWT Token", type="password")
-        if st.button("Login"):
-            st.session_state['token'] = token_input
-            st.rerun()
-        return
+    # Modal for creating a new simulation
+    if st.session_state.get("new_simulation_modal", False):
+        placeholder = st.empty()
+        with placeholder.container():
+            # Close button for the modal
+            close_button = st.button("✖")
+            with st.form(key="new_simulation_form"):
+                st.write("Create New Simulation")
+                simulation_name = st.text_input("Simulation Name")
+                num_jobs = st.text_input("Num Jobs")
+                num_cores = st.selectbox("Num Cores", [1, 4, 8])
+                ring_size = st.selectbox("Ring Size", [2, 4, 8])
+                routing = st.selectbox("Routing Algorithm", ["ecmp", "ilp_solver", "simulated_annealing"])
+                seed = st.text_input("Seed")
+                params = f"{num_jobs},{num_cores},{ring_size},{routing},{seed}"
+                submit_button = st.form_submit_button(label="Create")
 
-    # Decode the token to get user_id
-    user_id = get_user_id(st.session_state['token'])
+        # Clear the placeholder container if the close button is clicked
+        if close_button:
+            placeholder.empty()
+            st.session_state.new_simulation_modal = False
 
-    # Fetch simulation
-    simulations = fetch_simulations(user_id)
+        # Clear the placeholder container after the form is submitted
+        if submit_button:
+            create_new_simulation(simulation_name, params)
+            placeholder.empty()
+            st.session_state.new_simulation_modal = False
 
-    # Convert simulations to DataFrame for easier manipulation
-    df_simulations = pd.DataFrame(simulations)
+    # Fetch all experiments
+    experiments = fetch_all_experiments()
 
-    # Sidebar for actions
-    st.sidebar.header("Actions")
-    action = st.sidebar.selectbox("Select Action", ["View Simulation", "Create Simulation"])
+    # Display experiments in a table
+    if experiments:
+        df = pd.DataFrame(experiments)
+        df = df[["_id", "simulation_name", "date", "params", "state"]]
+        df.rename(columns={"state": "Is Running?"}, inplace=True)
+        df["Is Running?"] = df["Is Running?"].apply(lambda x: "✔" if x == "Running" else "✘")
 
-    if action == "View Simulation":
-        # Search simulations
-        search_text = st.text_input("Hold on! We are searching simulations...")
-        if search_text:
-            df_simulations = df_simulations[
-                df_simulations['simulation_name'].str.contains(search_text, case=False) |
-                df_simulations['parameters'].str.contains(search_text, case=False)
-            ]
+        # Create a clickable link for the simulation name
+        df['simulation_name'] = df.apply(
+            lambda row: f'<a href="/experiment_details?simulation_id={row["_id"]}">{row["simulation_name"]}</a>', axis=1
+        )
 
-        # Display simulations
-        st.dataframe(df_simulations)
+        # Create actions column within the DataFrame
+        action_options = ['', 'Re-Run', 'Edit', 'Delete']  # Consistent options
+        df['Actions'] = ''  # Initialize the Actions column. Important to avoid errors.
 
-        # Select a simulation
-        selected_simulation = st.selectbox("Select a simulation to manage", df_simulations['simulation_id'])
+        st.markdown(
+            df[['simulation_name', 'date', 'params', 'Is Running?', 'Actions']].to_html(escape=False, index=False),
+            unsafe_allow_html=True)
 
-        if selected_simulation:
-            sim_data = df_simulations[df_simulations['simulation_id'] == selected_simulation].iloc[0]
-
-            st.write("### Simulation Details")
-            st.write(f"**Simulation Name:** {sim_data['simulation_name']}")
-            st.write(f"**Date:** {sim_data['date']}")
-            st.write(f"**Parameters:** {sim_data['parameters']}")
-            st.write(f"**State:** {sim_data['state']}")
-
-            # Actions on the selected simulation
-            action_type = st.selectbox("Select Action", ["Re-Run simulation", "Edit simulation", "Delete simulation"])
-
-            if action_type == "Re-Run Simulation":
-                if st.button("Re-Run"):
-                    success = rerun_simulation(sim_data['path'], sim_data['simulation_id'], user_id)
-                    if success:
-                        st.success("Simulation re-run successfully.")
-                        st.rerun()
-
-                elif action_type == "Edit Simulation":
-                    st.write("#### Edit Simulation Parameters")
-
-                    params = {
-                        'simulation_name': st.text_input("Simulation Name", sim_data['simulation_name']),
-                        'num_jobs': st.number_input("Num Jobs", min_value=1, max_value=100,
-                                                    value=int(sim_data['parameters'].split(',')[0])),
-                        'num_tors': "32",  # Assuming fixed value
-                        'num_cores': st.selectbox("Num Cores", [0, 1, 4, 8],
-                                                  index=[0, 1, 4, 8].index(int(sim_data['parameters'].split(',')[1]))),
-                        'ring_size': st.selectbox("Ring Size", [2, 4, 8],
-                                                  index=[2, 4, 8].index(int(sim_data['parameters'].split(',')[2]))),
-                        'routing': st.selectbox("Algorithm",
-                                                ["ecmp", "edge_coloring", "ilp_solver", "mcvlc", "simulated_annealing"],
-                                                index=["ecmp", "edge_coloring", "ilp_solver", "mcvlc",
-                                                       "simulated_annealing"].index(
-                                                    sim_data['parameters'].split(',')[3])),
-                        'path': sim_data['path'],
-                        'seed': st.selectbox("Seed", ["0", "42", "200", "404", "1234"],
-                                             index=["0", "42", "200", "404", "1234"].index(
-                                                 sim_data['parameters'].split(',')[4]))
-                    }
-
-                    if st.button("Update Simulation"):
-                        update_simulation(params, sim_data['simulation_id'], user_id)
-                        st.success("Simulation updated successfully.")
-                        st.rerun()
-
-                elif action_type == "Delete Simulation":
-                    if st.button("Delete Simulation"):
-                        delete_solution(sim_data['simulation_id'], user_id)
-                        st.success("Simulation deleted successfully.")
-                        st.rerun()
-
-    elif action == "Create Simulation":
-        st.header("Create new simulation")
-
-        params = {
-            'simulation_name': st.text_input("Simulation Name"),
-            'num_jobs': st.number_input("Num Jobs", min_value=1, max_value=100, value=1),
-            'num_tors': "32",  # Assuming fixed value
-            'num_cores': st.selectbox("Num Cores", [0, 1, 4, 8]),
-            'ring_size': st.selectbox("Ring Size", [2, 4, 8]),
-            'routing': st.selectbox("Algorithm", ["ecmp", "edge_coloring", "ilp_solver", "mcvlc", "simulated_annealing"]),
-            'path': "",
-            'seed': st.selectbox("Seed", ["0", "42", "200", "404", "1234"])
-        }
-
-        if st.button("Create simulation"):
-            if not params['simulation_name']:
-                st.error("Simulation Name is required.")
-            else:
-                create_simulation(params, user_id)
-                st.success("Simulation created successfully.")
-                st.rerun()
+        # Action Selection
+        for index, row in df.iterrows():
+            df.at[index, 'Actions'] = st.selectbox(
+                'Select Action',
+                action_options,
+                key=f"action_{row['_id']}",  # Unique key for each selectbox
+                on_change=handle_action_change,
+                args=(row['_id'],),
+            )
 
 
-if __name__ == "__main__":
-    main()
+def handle_action_change(action, simulation_id):
+    if action == "Re-Run":
+        st.experimental_set_query_params(simulation_id=simulation_id)
+        st.rerun()
+    elif action == "Edit":
+        st.experimental_set_query_params(simulation_id=simulation_id)
+        st.rerun()
+    elif action == "Delete":
+        experiments_collection.delete_one({"_id": ObjectId(simulation_id)})
+        st.rerun()
+
+
+main()

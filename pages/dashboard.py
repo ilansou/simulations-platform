@@ -1,115 +1,122 @@
 import streamlit as st
 import pandas as pd
+from datetime import datetime
 from pymongo import MongoClient
-from bson.objectid import ObjectId
+from bson import ObjectId
+
+# MongoDB connection
+client = MongoClient("mongodb://localhost:27017")
+db = client["experiment_db"]
+experiments_collection = db["experiments"]
 
 
-def fetch_simulations():
-    """
-    Fetch simulations from the MongoDB database.
-
-    Returns:
-        list: A list of simulation data.
-    """
+def fetch_all_experiments():
     try:
-        # Connect to MongoDB
-        client = MongoClient("mongodb://localhost:27017")
-        db = client["experiment_db"]
-        experiments_collection = db["experiments"]
-
-        # Retrieve all simulations
-        simulations = list(experiments_collection.find())
-        for sim in simulations:
-            sim['_id'] = str(sim['_id'])  # Convert ObjectId to string
-
-        return simulations
+        experiments = list(experiments_collection.find())
+        for experiment in experiments:
+            experiment['_id'] = str(experiment['_id'])  # Convert ObjectId to string
+        return experiments
     except Exception as e:
-        st.error(f"Error fetching simulations: {e}")
+        st.error(f"Error fetching experiments: {e}")
         return []
 
 
-def delete_simulation(simulation_id):
-    """
-    Delete a simulation by its ID.
-
-    Args:
-        simulation_id (str): ID of the simulation to delete.
-    """
+def create_new_simulation(simulation_name, params):
     try:
-        # Connect to MongoDB
-        client = MongoClient("mongodb://localhost:27017")
-        db = client["experiment_db"]
-        experiments_collection = db["experiments"]
-
-        # Delete the simulation by its ID
-        experiments_collection.delete_one({"_id": ObjectId(simulation_id)})
+        new_experiment = {
+            "simulation_name": simulation_name,
+            "params": params,
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "start_time": datetime.now().isoformat(),
+            "end_time": None,
+            "state": "Running",
+        }
+        experiments_collection.insert_one(new_experiment)
+        st.success("New simulation created successfully!")
+        st.rerun()
     except Exception as e:
-        st.error(f"Error deleting simulation: {e}")
+        st.error(f"Error creating new simulation: {e}")
 
 
 def main():
-    """
-    Main function for the Simulation Dashboard.
-
-    Displays simulations and provides options to view details, re-run,
-    or delete simulations. Includes functionality to create a new simulation.
-    """
     st.title("Simulation Dashboard")
 
-    # Fetch simulations from the database
-    simulations = fetch_simulations()
+    # New Simulation button
+    if st.button("New Simulation"):
+        st.session_state.new_simulation_modal = True
 
-    # Convert simulation data to a DataFrame for easier manipulation
-    df_simulations = pd.DataFrame(simulations)
+    # Modal for creating a new simulation
+    if st.session_state.get("new_simulation_modal", False):
+        placeholder = st.empty()
+        with placeholder.container():
+            # Close button for the modal
+            close_button = st.button("✖")
+            with st.form(key="new_simulation_form"):
+                st.write("Create New Simulation")
+                simulation_name = st.text_input("Simulation Name")
+                num_jobs = st.text_input("Num Jobs")
+                num_cores = st.selectbox("Num Cores", [1, 4, 8])
+                ring_size = st.selectbox("Ring Size", [2, 4, 8])
+                routing = st.selectbox("Routing Algorithm", ["ecmp", "ilp_solver", "simulated_annealing"])
+                seed = st.text_input("Seed")
+                params = f"{num_jobs},{num_cores},{ring_size},{routing},{seed}"
+                submit_button = st.form_submit_button(label="Create")
 
-    # Search simulations by name or parameters
-    search_text = st.text_input("Search simulations...")
-    if search_text:
-        df_simulations = df_simulations[
-            df_simulations['simulation_name'].str.contains(search_text, case=False, na=False) |
-            df_simulations['params'].str.contains(search_text, case=False, na=False)
-        ]
+        # Clear the placeholder container if the close button is clicked
+        if close_button:
+            placeholder.empty()
+            st.session_state.new_simulation_modal = False
 
-    if df_simulations.empty:
-        st.info("No simulations found.")
-        return
+        # Clear the placeholder container after the form is submitted
+        if submit_button:
+            create_new_simulation(simulation_name, params)
+            placeholder.empty()
+            st.session_state.new_simulation_modal = False
 
-    # Display the list of simulations
-    st.header("Your Simulations")
-    for index, row in df_simulations.iterrows():
-        st.write(f"### {row['simulation_name']}")
-        st.write(f"**Date:** {row['date']}")
-        st.write(f"**Parameters:** {row['params']}")
-        st.write(f"**State:** {row['state']}")
+    # Fetch all experiments
+    experiments = fetch_all_experiments()
 
-        # Create columns for action buttons
-        col1, col2, col3 = st.columns([1, 1, 1])
-        with col1:
-            # Button to view details of the simulation
-            if st.button("View Details", key=f"view_{row['_id']}"):
-                # Set simulation_id and navigate to experiment details page
-                st.query_params.from_dict({"page": "experiment_details", "simulation_id": row['_id']})
-                st.rerun()
-        with col2:
-            # Button to delete the simulation
-            if st.button("Delete Simulation", key=f"delete_{row['_id']}"):
-                delete_simulation(row['_id'])
-                st.success("Simulation deleted successfully.")
-                st.rerun()
-        with col3:
-            # Button to re-run the simulation
-            if st.button("Re-Run", key=f"rerun_{row['_id']}"):
-                st.query_params.from_dict({"page": "experiment_details", "simulation_id": row['_id'], "mode": "rerun"})
-                st.rerun()
+    # Display experiments in a table
+    if experiments:
+        df = pd.DataFrame(experiments)
+        df = df[["_id", "simulation_name", "date", "params", "state"]]
+        df.rename(columns={"state": "Is Running?"}, inplace=True)
+        df["Is Running?"] = df["Is Running?"].apply(lambda x: "✔" if x == "Running" else "✘")
 
-    # Divider
-    st.markdown("---")
+        # Create a clickable link for the simulation name
+        df['simulation_name'] = df.apply(
+            lambda row: f'<a href="/experiment_details?simulation_id={row["_id"]}">{row["simulation_name"]}</a>', axis=1
+        )
 
-    # Button to create a new simulation
-    if st.button("Create New Simulation"):
-        st.query_params.from_dict({"page": "experiment_details", "mode": "create"})
+        # Create actions column within the DataFrame
+        action_options = ['', 'Re-Run', 'Edit', 'Delete']  # Consistent options
+        df['Actions'] = ''  # Initialize the Actions column. Important to avoid errors.
+
+        st.markdown(
+            df[['simulation_name', 'date', 'params', 'Is Running?', 'Actions']].to_html(escape=False, index=False),
+            unsafe_allow_html=True)
+
+        # Action Selection
+        for index, row in df.iterrows():
+            df.at[index, 'Actions'] = st.selectbox(
+                'Select Action',
+                action_options,
+                key=f"action_{row['_id']}",  # Unique key for each selectbox
+                on_change=handle_action_change,
+                args=(row['_id'],),
+            )
+
+
+def handle_action_change(action, simulation_id):
+    if action == "Re-Run":
+        st.experimental_set_query_params(simulation_id=simulation_id)
+        st.rerun()
+    elif action == "Edit":
+        st.experimental_set_query_params(simulation_id=simulation_id)
+        st.rerun()
+    elif action == "Delete":
+        experiments_collection.delete_one({"_id": ObjectId(simulation_id)})
         st.rerun()
 
 
-# Run the main function
 main()

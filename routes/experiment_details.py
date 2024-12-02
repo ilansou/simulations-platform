@@ -122,9 +122,7 @@ def display_experiment(simulation_id):
     
 def main():
     st.title("Experiment Details")
-    if st.button("Home"):
-        st.switch_page("routes/dashboard.py")
-    
+
     # Get simulation_id from URL
     simulation_id = st.query_params["simulation_id"] if "simulation_id" in st.query_params else None
 

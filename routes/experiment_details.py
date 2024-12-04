@@ -122,22 +122,49 @@ def display_page(simulation_id):
     with tab2:
         st.title("Chat")
 
-        # Initialize chat messages in session state if not already present
+        # Initialize chat messages in session_state if they don't exist
         if "chat_messages" not in st.session_state:
             st.session_state.chat_messages = []
 
-        # Display chat messages
-        for message in st.session_state.chat_messages:
+        # Initializing the editing state
+        if "editing_message_index" not in st.session_state:
+            st.session_state.editing_message_index = None
+
+        # Displaying chat messages
+        for i, message in enumerate(st.session_state.chat_messages):
             st.markdown(f"**User:** {message}")
+            col1, col2 = st.columns([1, 1])
+            with col1:
+                if st.button("Edit", key=f"edit_{i}"):
+                    st.session_state.editing_message_index = i
+            with col2:
+                if st.button("Delete", key=f"delete_{i}"):
+                    del st.session_state.chat_messages[i]
+                    st.rerun()
 
-        # Input bar for new messages
-        new_message = st.text_input("Type your message here...")
+        # Processing message editing
+        if st.session_state.editing_message_index is not None:
+            index = st.session_state.editing_message_index
+            edited_message = st.text_input("Edit message", st.session_state.chat_messages[index], key="edit_input")
+            col1, col2 = st.columns([1, 1])
+            with col1:
+                if st.button("Save", key="save_edit"):
+                    st.session_state.chat_messages[index] = edited_message
+                    st.session_state.editing_message_index = None
+                    st.rerun()
+            with col2:
+                if st.button("Cancel", key="cancel_edit"):
+                    st.session_state.editing_message_index = None
+                    st.rerun()
+        else:
+            # Field for entering new messages
+            new_message = st.text_input("Type your message here...", key="new_message")
 
-        # Submit button for new messages
-        if st.button("Send"):
-            if new_message:
-                st.session_state.chat_messages.append(new_message)
-                st.rerun() 
+            # New message send button
+            if st.button("Send", key="send_button"):
+                if new_message:
+                    st.session_state.chat_messages.append(new_message)
+                    st.rerun()
     
     # with tab2:
     #     st.title("Chat")

@@ -40,6 +40,8 @@ def create_run_dir(
         f"seed_{seed}",
         f"concurrent_jobs_{num_jobs}",
     )
+    print("job_dir", job_dir)
+    print ("traffic_pairs_dir", traffic_pairs_dir)
     if ring_size is None:
         job_dir = os.path.join(job_dir, "different_ring_sizes")
         traffic_pairs_dir = os.path.join(traffic_pairs_dir, "different_ring_sizes")

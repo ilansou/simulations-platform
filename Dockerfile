@@ -1,21 +1,47 @@
-# Use an official Python runtime as a parent image
-FROM python:3.9-slim
+FROM python:3.13
+
+# Set environment variables
+ENV PROJECT_ROOT=/app
+ENV FLOODNS_ROOT=/app/floodns
+ENV POETRY_HOME=/opt/poetry
+ENV POETRY_VIRTUALENVS_CREATE=false
+ENV PATH="/opt/poetry/bin:/usr/local/bin:$PATH"
+ENV PYTHONPATH="${PYTHONPATH}:${PROJECT_ROOT}"
+
+# Install system dependencies and Java Runtime Environment
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        curl \
+        build-essential \
+        default-jre \
+        maven && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Poetry
+RUN curl -sSL https://install.python-poetry.org | python3 - && \
+    poetry --version && \
+    poetry config virtualenvs.create false
 
 # Set the working directory in the container
-WORKDIR /app
+WORKDIR $PROJECT_ROOT
 
 # Copy the current directory contents into the container at /app
-COPY . /app
+COPY . $PROJECT_ROOT
 
-# Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies using Poetry
+RUN poetry install
 
-# Make port 80 available to the world outside this container
-EXPOSE 80
+# Build Java components
+WORKDIR $FLOODNS_ROOT
+RUN mvn clean compile assembly:single && \
+    mv target/floodns-*-jar-with-dependencies.jar $FLOODNS_ROOT/floodns-basic-sim.jar
 
-# Define environment variable
-ENV PROJECT_ROOT /app
-ENV FLOODNS_ROOT /app/floodns
+# Set the working directory back to the project root
+WORKDIR $PROJECT_ROOT
 
-# Run app.py when the container launches
+# Expose the port your application runs on
+EXPOSE 8501
+
+# Make sure the entry point is executable
 CMD ["python", "main.py"]

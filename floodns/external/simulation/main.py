@@ -1,5 +1,4 @@
 import os
-from os import makedirs, remove
 from subprocess import Popen, run, PIPE
 
 from floodns.external.runs_generator.main import create_run_dir, create_run_dir_single_job
@@ -10,8 +9,6 @@ from typer import Typer
 from conf import FLOODNS_ROOT
 
 app = Typer()
-
-
 
 @app.command()
 def local_run_single_job(

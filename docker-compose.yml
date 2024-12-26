@@ -10,8 +10,4 @@ services:
     environment:
       - PROJECT_ROOT=/app
       - FLOODNS_ROOT=/app/floodns
-      - POETRY_HOME=/opt/poetry
-      - POETRY_VIRTUALENVS_CREATE=false
-      - PATH=/opt/poetry/bin:/usr/local/bin:$PATH
-      - PYTHONPATH=${PROJECT_ROOT}
     command: ["python", "main.py"]

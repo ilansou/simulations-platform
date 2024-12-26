@@ -1,6 +1,6 @@
 import os
 from os import makedirs
-
+from pathlib import Path
 from floodns.external.schemas.routing import Routing
 from typer import Typer
 from conf import FLOODNS_ROOT
@@ -27,14 +27,14 @@ def create_run_dir(
     :param routing: Routing algorithm
     :param seed: Seed for random
     """
-    job_dir = os.path.join(
+    job_dir = Path(
         FLOODNS_ROOT,
         "runs",
         f"seed_{seed}",
         f"concurrent_jobs_{num_jobs}",
         f"{core_failures}_core_failures",
     )
-    traffic_pairs_dir = os.path.join(
+    traffic_pairs_dir = Path(
         FLOODNS_ROOT,
         "traffic_pairs",
         f"seed_{seed}",
@@ -43,13 +43,13 @@ def create_run_dir(
     print("job_dir", job_dir)
     print ("traffic_pairs_dir", traffic_pairs_dir)
     if ring_size is None:
-        job_dir = os.path.join(job_dir, "different_ring_sizes")
-        traffic_pairs_dir = os.path.join(traffic_pairs_dir, "different_ring_sizes")
+        job_dir = Path(job_dir, "different_ring_sizes")
+        traffic_pairs_dir = Path(traffic_pairs_dir, "different_ring_sizes")
     else:
-        job_dir = os.path.join(job_dir, f"ring_size_{ring_size}")
-        traffic_pairs_dir = os.path.join(traffic_pairs_dir, f"ring_size_{ring_size}")
+        job_dir = Path(job_dir, f"ring_size_{ring_size}")
+        traffic_pairs_dir = Path(traffic_pairs_dir, f"ring_size_{ring_size}")
 
-    job_dir = os.path.join(job_dir, routing.value)
+    job_dir = Path(job_dir, routing.value)
     if not os.path.exists(job_dir):
         makedirs(job_dir, exist_ok=True)
 
@@ -75,7 +75,7 @@ def create_run_dir_single_job(
     :param seed: Seed for random
     """
     for routing in Routing:
-        job_dir = os.path.join(
+        job_dir = Path(
             FLOODNS_ROOT,
             "runs",
             f"seed_{seed}",
@@ -87,7 +87,7 @@ def create_run_dir_single_job(
         )
         if not os.path.exists(job_dir):
             makedirs(job_dir, exist_ok=True)
-        traffic_pairs_dir = os.path.join(
+        traffic_pairs_dir = Path(
             FLOODNS_ROOT,
             "traffic_pairs",
             f"seed_{seed}",
@@ -156,9 +156,9 @@ def create_files(
         traffic_pairs_dir=traffic_pairs_dir,
     )
     create_2_layer_topology(root=runs_dir, num_tors=num_tors)
-    if os.path.exists(os.path.join(runs_dir, "schedule.csv")):
+    if os.path.exists(Path(runs_dir, "schedule.csv")):
         return
-    with open(os.path.join(runs_dir, "schedule.csv"), "w") as f:
+    with open(Path(runs_dir, "schedule.csv"), "w") as f:
         f.write("0,5,8,100000000,0,,\n")
 
 
@@ -168,7 +168,7 @@ def create_config_floodns(
     core_failures: int,
     traffic_pairs_dir: str,
 ):
-    config_file = os.path.join(root, "config.properties")
+    config_file = Path(root, "config.properties")
     with open(config_file, "w") as f:
         f.write("simulation_end_time_ns=604800000000000\n")
         f.write("simulation_seed=1234\n")
@@ -180,7 +180,7 @@ def create_config_floodns(
         
 
 def create_2_layer_topology(root: dir, num_tors: int):
-    topology_file = os.path.join(root, "topology.properties")
+    topology_file = Path(root, "topology.properties")
     radix = num_tors // 2
     num_cores = radix
     num_hosts_under_tor = radix

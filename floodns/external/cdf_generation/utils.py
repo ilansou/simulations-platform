@@ -1,6 +1,6 @@
 import os
 from os import makedirs
-
+from pathlib import Path
 import numpy as np
 import pandas as pd
 from floodns.external.analysis.routing_strategy_comparison import compare_routing_strategies
@@ -31,7 +31,7 @@ plot_x_vals.extend(np.arange(1e10, 1e11, 1e8))
 plot_x_vals.extend(np.arange(1e11, 1e12, 1e9))
 plot_x_vals.extend(np.arange(1e12, 1e13, 1e10))
 
-BASE_CDF_FOLDER = os.path.join(FLOODNS_ROOT, "cdfs")
+BASE_CDF_FOLDER = Path(FLOODNS_ROOT, "cdfs")
 
 
 def load_job_info_df(filename: str):
@@ -87,21 +87,21 @@ def load_connection_info_df(filename: str) -> pd.DataFrame:
 def load_job_ids(
     job_ids_folder: str, num_concurrent_jobs: int, num_core_failures: int, ring_size: int
 ):
-    if not os.path.exists(os.path.join(job_ids_folder, "successful_jobs.csv")):
-        print(f"Generating file {os.path.join(job_ids_folder, 'successful_jobs.csv')}")
+    if not os.path.exists(Path(job_ids_folder, "successful_jobs.csv")):
+        print(f"Generating file {Path(job_ids_folder, 'successful_jobs.csv')}")
         compare_routing_strategies(
             num_concurrent_jobs=num_concurrent_jobs,
             num_core_failures=num_core_failures,
             ring_size=ring_size,
         )
-    jobs = pd.read_csv(os.path.join(job_ids_folder, "successful_jobs.csv"))
+    jobs = pd.read_csv(Path(job_ids_folder, "successful_jobs.csv"))
     return jobs
 
 
 def save_data_parallelism_time_cdf(
     df: pd.DataFrame, routing: Routing, num_jobs: int, num_cores: int, ring_size: int, job_id: int
 ):
-    folder = os.path.join(
+    folder = Path(
         BASE_CDF_FOLDER,
         "data_parallelism_time",
         f"concurrent_jobs_{num_jobs}",
@@ -112,14 +112,14 @@ def save_data_parallelism_time_cdf(
     makedirs(folder, exist_ok=True)
 
     filename = f"{routing.value}-data_parallelism_time.cdf"
-    cdf_file = os.path.join(folder, filename)
+    cdf_file = Path(folder, filename)
     save_cdf(data=df["duration"] / 1e9, cdf_file=cdf_file)
 
 
 def save_fct_cdf(
     df: pd.DataFrame, routing: Routing, num_jobs: int, num_cores: int, ring_size: int, job_id: int
 ):
-    folder = os.path.join(
+    folder = Path(
         BASE_CDF_FOLDER,
         "flow_completion_time",
         f"concurrent_jobs_{num_jobs}",
@@ -130,14 +130,14 @@ def save_fct_cdf(
     makedirs(folder, exist_ok=True)
 
     filename = f"{routing.value}-flow_completion_time.cdf"
-    cdf_file = os.path.join(folder, filename)
+    cdf_file = Path(folder, filename)
     save_cdf(data=df["duration"] / 1e9, cdf_file=cdf_file)
 
 
 def save_throughput_cdf(
     df: pd.DataFrame, routing: Routing, num_jobs: int, num_cores: int, ring_size: int, job_id: int
 ):
-    folder = os.path.join(
+    folder = Path(
         BASE_CDF_FOLDER,
         "throughput",
         f"concurrent_jobs_{num_jobs}",
@@ -148,14 +148,14 @@ def save_throughput_cdf(
     makedirs(folder, exist_ok=True)
 
     filename = f"{routing.value}-throughput.cdf"
-    cdf_file = os.path.join(folder, filename)
+    cdf_file = Path(folder, filename)
     save_cdf(data=df["sent"] / df["duration"], cdf_file=cdf_file)
 
 
 def save_controller_computation_time_cdf(
     df: pd.DataFrame, routing: Routing, num_jobs: int, num_cores: int, ring_size: int
 ):
-    folder = os.path.join(
+    folder = Path(
         BASE_CDF_FOLDER,
         "controller_computation",
         f"concurrent_jobs_{num_jobs}",
@@ -164,7 +164,7 @@ def save_controller_computation_time_cdf(
     )
     makedirs(folder, exist_ok=True)
 
-    cdf_file = os.path.join(folder, f"{routing}-controller_computation.cdf")
+    cdf_file = Path(folder, f"{routing}-controller_computation.cdf")
     save_cdf(data=df["computation"], cdf_file=cdf_file)
 
 

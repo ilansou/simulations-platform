@@ -10,7 +10,7 @@ from conf import FLOODNS_ROOT
 
 app = typer.Typer()
 
-BASE_PATH = os.path.join(FLOODNS_ROOT, "runs")
+BASE_PATH = Path(FLOODNS_ROOT, "runs")
 
 print("BASE_PATH", BASE_PATH)
 
@@ -22,7 +22,7 @@ RING_SIZES = [2, 4, 8]
 def different_ring_sizes(num_concurrent_jobs: int, seed: int):
     assert num_concurrent_jobs > 1, "num_concurrent_jobs must be greater than 1"
     for num_core_failures in NUM_FAILED_CORES:
-        experiment_folder = os.path.join(
+        experiment_folder = Path(
             BASE_PATH,
             f"seed_{seed}",
             f"concurrent_jobs_{num_concurrent_jobs}",
@@ -40,7 +40,7 @@ def concurrent_jobs(num_concurrent_jobs: int, seed: int):
         for ring_size in RING_SIZES:
             if num_concurrent_jobs == 1:
                 for model_name in ["GPT_3", "BLOOM", "LLAMA2_70B"]:
-                    experiment_folder = os.path.join(
+                    experiment_folder = Path(
                         BASE_PATH,
                         f"seed_{seed}",
                         f"concurrent_jobs_{num_concurrent_jobs}",
@@ -52,7 +52,7 @@ def concurrent_jobs(num_concurrent_jobs: int, seed: int):
                         experiment_folder=experiment_folder,
                     )
             else:
-                experiment_folder = os.path.join(
+                experiment_folder = Path(
                     BASE_PATH,
                     f"seed_{seed}",
                     f"concurrent_jobs_{num_concurrent_jobs}",
@@ -68,20 +68,20 @@ def compare_routing_strategies_helper(experiment_folder: str):
     print(f"Experiment Folder: {experiment_folder}")
     dfs = {
         "ecmp": load_job_info(
-            os.path.join(experiment_folder, "ecmp", "logs_floodns", "job_info.csv")
+            Path(experiment_folder, "ecmp", "logs_floodns", "job_info.csv")
         ),
         "mcvlc": load_job_info(
-            os.path.join(experiment_folder, "mcvlc", "logs_floodns", "job_info.csv")
+            Path(experiment_folder, "mcvlc", "logs_floodns", "job_info.csv")
         ),
         "edge_coloring": load_job_info(
-            os.path.join(experiment_folder, "edge_coloring", "logs_floodns", "job_info.csv")
+            Path(experiment_folder, "edge_coloring", "logs_floodns", "job_info.csv")
         ),
         "simulated_annealing": load_job_info(
-            os.path.join(experiment_folder, "simulated_annealing", "logs_floodns", "job_info.csv")
+            Path(experiment_folder, "simulated_annealing", "logs_floodns", "job_info.csv")
         ),
         "ilp_solver": load_job_info(
-            os.path.join(
-                os.path.join(experiment_folder, "ilp_solver", "logs_floodns"),
+            Path(
+                Path(experiment_folder, "ilp_solver", "logs_floodns"),
                 "job_info.csv",
             )
         ),
@@ -123,13 +123,13 @@ def log_jobs(experiment_folder: str, jobs: dict, failed_jobs: dict, dfs: dict):
 def log_connection_info(experiment_folder: str, jobs: dict):
     dfs = {
         "ecmp": load_connection_info(
-            os.path.join(experiment_folder, "ecmp", "logs_floodns", "connection_info.csv")
+            Path(experiment_folder, "ecmp", "logs_floodns", "connection_info.csv")
         ),
         "mcvlc": load_connection_info(
-            os.path.join(experiment_folder, "mcvlc", "logs_floodns", "connection_info.csv")
+            Path(experiment_folder, "mcvlc", "logs_floodns", "connection_info.csv")
         ),
         "edge_coloring": load_connection_info(
-            os.path.join(
+            Path(
                 experiment_folder,
                 "edge_coloring",
                 "logs_floodns",
@@ -137,7 +137,7 @@ def log_connection_info(experiment_folder: str, jobs: dict):
             )
         ),
         "simulated_annealing": load_connection_info(
-            os.path.join(
+            Path(
                 experiment_folder,
                 "simulated_annealing",
                 "logs_floodns",
@@ -145,7 +145,7 @@ def log_connection_info(experiment_folder: str, jobs: dict):
             )
         ),
         "ilp_solver": load_connection_info(
-            os.path.join(experiment_folder, "ilp_solver", "logs_floodns", "connection_info.csv")
+            Path(experiment_folder, "ilp_solver", "logs_floodns", "connection_info.csv")
         ),
     }
 
@@ -220,7 +220,7 @@ def load_connection_info(csv_file: str) -> pd.DataFrame:
     if not os.path.exists(csv_file):
         return None
     connection_info = pd.read_csv(csv_file)
-    csv_file = os.path.join(FLOODNS_ROOT, "runs", "headers", "connection_info.header")
+    csv_file = Path(FLOODNS_ROOT, "runs", "headers", "connection_info.header")
     connection_info.columns = pd.read_csv(csv_file).columns
     connection_info.sort_values(by=["connection_id", "start_time"], inplace=True)
     return connection_info
@@ -230,7 +230,7 @@ def load_job_info(csv_file: str) -> pd.DataFrame | None:
     if not os.path.exists(csv_file):
         return None
     job_info = pd.read_csv(csv_file)
-    csv_file = os.path.join(FLOODNS_ROOT, "runs", "headers", "job_info.header")
+    csv_file = Path(FLOODNS_ROOT, "runs", "headers", "job_info.header")
     job_info.columns = pd.read_csv(csv_file).columns
     job_info.sort_values(by=["job_id", "start_time"], inplace=True)
     job_info.drop(columns=["Unnamed: 10"], inplace=True)
@@ -362,20 +362,20 @@ def get_folders(
     parallel: DistributedTraining,
     oversubscription: HostOversubscription,
 ):
-    base_cdf_folder = os.path.join(FLOODNS_ROOT, "results", "cdf", parallel.value, f"{n_tors}_tors")
-    training_iteration_time_folder = os.path.join(
+    base_cdf_folder = Path(FLOODNS_ROOT, "results", "cdf", parallel.value, f"{n_tors}_tors")
+    training_iteration_time_folder = Path(
         base_cdf_folder,
         "training_iteration_time",
         "failures/node/NUM_FAILED_NODES" if with_failures else "no_failures",
         oversubscription.value,
     )
-    fct_folder = os.path.join(
+    fct_folder = Path(
         base_cdf_folder,
         "fct",
         "failures/node/NUM_FAILED_NODES" if with_failures else "no_failures",
         oversubscription.value,
     )
-    throughput_folder = os.path.join(
+    throughput_folder = Path(
         base_cdf_folder,
         "throughput",
         "failures/node/NUM_FAILED_NODES" if with_failures else "no_failures",

@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import sys
 import subprocess
 from conf import FLOODNS_ROOT
@@ -52,7 +53,7 @@ def run_experiment():
     num_jobs = 2
     # Run the experiment (multiple jobs, same ring size)
     print(f"Starting multiple jobs simulation with routing={routing}")
-    expected_dir = os.path.join(
+    expected_dir = Path(
         FLOODNS_ROOT,
         "runs",
         f"seed_{seed}",

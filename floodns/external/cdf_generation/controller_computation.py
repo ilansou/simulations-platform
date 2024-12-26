@@ -1,5 +1,5 @@
 import os
-
+from pathlib import Path
 import pandas as pd
 import typer
 from floodns.external.cdf_generation.utils import save_controller_computation_time_cdf
@@ -11,7 +11,7 @@ app = typer.Typer()
 NUM_FAILED_CORES = [0, 1, 4, 8]
 NUM_CONCURRENT_JOBS = [1, 2, 3, 4, 5]
 RING_SIZES = [2, 4, 8]
-BASE_PATH = os.path.join(FLOODNS_ROOT, "runs")
+BASE_PATH = Path(FLOODNS_ROOT, "runs")
 
 
 @app.command()
@@ -39,7 +39,7 @@ def handle_controller_computation(
     num_cores: int,
     ring_size: int,
 ):
-    concurrent_jobs_path = os.path.join(
+    concurrent_jobs_path = Path(
         BASE_PATH,
         f"concurrent_jobs_{num_jobs}",
         f"{num_cores}_core_failures",
@@ -47,7 +47,7 @@ def handle_controller_computation(
         routing.value,
         "logs_floodns",
     )
-    filename = os.path.join(concurrent_jobs_path, "assignments_duration.csv")
+    filename = Path(concurrent_jobs_path, "assignments_duration.csv")
     if not os.path.exists(filename):
         print(f"File {filename} does not exist")
         return

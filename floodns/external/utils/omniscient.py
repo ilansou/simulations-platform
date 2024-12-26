@@ -1,6 +1,6 @@
 import os
 from os import listdir
-
+from pathlib import Path
 import pandas as pd
 from floodns.external.schemas.distributed_training import DistributedTraining
 from conf import FLOODNS_ROOT
@@ -19,7 +19,7 @@ def get_job_ids(jobs_dir: str) -> list:
 def load_jobs(
     level: int, n_tors: int, bw: int, load: float, parallel: DistributedTraining, job_ids: list
 ):
-    jobs_dir = os.path.join(
+    jobs_dir = Path(
         FLOODNS_ROOT,
         "traffic_pairs",
         f"{level}_level",
@@ -35,7 +35,7 @@ def load_jobs(
         job_id = int(dirname.split("_")[1])
         if job_id not in job_ids:
             continue
-        filename = os.path.join(jobs_dir, dirname, "data_parallelism.txt")
+        filename = Path(jobs_dir, dirname, "data_parallelism.txt")
         df = pd.read_csv(filename, delimiter=" ", header=0)
         df.rename(columns={"#src": "src"}, inplace=True)
         start_time = df["start_time"].min()

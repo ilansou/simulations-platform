@@ -35,4 +35,4 @@ WORKDIR $PROJECT_ROOT
 EXPOSE 8501
 
 # Run the application
-CMD ["python", "main.py"]
+CMD ["streamlit", "run", "app.py"]

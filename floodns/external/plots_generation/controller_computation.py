@@ -1,6 +1,6 @@
 import os
 from os import makedirs
-
+from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 from floodns.external.plots_generation.utils import (
@@ -17,7 +17,7 @@ app = Typer()
 NUM_FAILED_CORES = [0, 1, 4, 8]
 NUM_CONCURRENT_JOBS = [1, 2, 3, 4, 5]
 RING_SIZES = [2, 4, 8]
-BASE_PATH = os.path.join(FLOODNS_ROOT, "cdfs")
+BASE_PATH = Path(FLOODNS_ROOT, "cdfs")
 
 percentiles = ["Average", "Median", "25th", "75th", "90th", "95th", "99th"]
 
@@ -29,7 +29,7 @@ def ring_size_x_core_failures(ring_size: int, num_concurrent_jobs: int):
         return
 
     folders = {
-        core: os.path.join(
+        core: Path(
             BASE_PATH,
             "controller_computation",
             f"concurrent_jobs_{num_concurrent_jobs}",
@@ -42,7 +42,7 @@ def ring_size_x_core_failures(ring_size: int, num_concurrent_jobs: int):
 
     for routing in CentralizedControllerRouting:
         for num_cores, folder in folders.items():
-            filename = os.path.join(folder, f"{routing.value}-controller_computation.cdf")
+            filename = Path(folder, f"{routing.value}-controller_computation.cdf")
             if not os.path.exists(filename):
                 print(f"File {filename} does not exist. Skipping...")
                 continue
@@ -72,13 +72,13 @@ def ring_size_x_core_failures(ring_size: int, num_concurrent_jobs: int):
         )
     ax.legend()
 
-    folder = os.path.join(
+    folder = Path(
         BASE_PATH,
         "controller_computation",
         f"concurrent_jobs_{num_concurrent_jobs}",
     ).replace("cdfs", "plots")
     makedirs(folder, exist_ok=True)
-    plt.savefig(os.path.join(folder, f"ring_size_{ring_size}_x_core_failures.png"))
+    plt.savefig(Path(folder, f"ring_size_{ring_size}_x_core_failures.png"))
 
 
 @app.command()
@@ -88,7 +88,7 @@ def core_failures_x_ring_size(num_cores: int, num_concurrent_jobs: int):
         ring_sizes = [2, 4]
 
     folders = {
-        ring_size: os.path.join(
+        ring_size: Path(
             BASE_PATH,
             "controller_computation",
             f"concurrent_jobs_{num_concurrent_jobs}",
@@ -101,7 +101,7 @@ def core_failures_x_ring_size(num_cores: int, num_concurrent_jobs: int):
 
     for routing in CentralizedControllerRouting:
         for ring_size, folder in folders.items():
-            filename = os.path.join(folder, f"{routing.value}-controller_computation.cdf")
+            filename = Path(folder, f"{routing.value}-controller_computation.cdf")
             if not os.path.exists(filename):
                 print(f"File {filename} does not exist. Skipping...")
                 continue
@@ -131,14 +131,14 @@ def core_failures_x_ring_size(num_cores: int, num_concurrent_jobs: int):
         )
     ax.legend()
 
-    folder = os.path.join(
+    folder = Path(
         BASE_PATH,
         "controller_computation",
         f"concurrent_jobs_{num_concurrent_jobs}",
         f"{num_cores}_core_failures",
     ).replace("cdfs", "plots")
     makedirs(folder, exist_ok=True)
-    plt.savefig(os.path.join(folder, f"{num_cores}_core_failures_x_ring_size.png"))
+    plt.savefig(Path(folder, f"{num_cores}_core_failures_x_ring_size.png"))
 
 
 @app.command()
@@ -148,7 +148,7 @@ def concurrent_jobs_x_core_failures(num_jobs: int, ring_size: int):
         return
 
     folders = {
-        core: os.path.join(
+        core: Path(
             BASE_PATH,
             "controller_computation",
             f"concurrent_jobs_{num_jobs}",
@@ -161,7 +161,7 @@ def concurrent_jobs_x_core_failures(num_jobs: int, ring_size: int):
 
     for routing in CentralizedControllerRouting:
         for num_cores, folder in folders.items():
-            filename = os.path.join(folder, f"{routing.value}-controller_computation.cdf")
+            filename = Path(folder, f"{routing.value}-controller_computation.cdf")
             if not os.path.exists(filename):
                 print(f"File {filename} does not exist. Skipping...")
                 continue
@@ -191,19 +191,19 @@ def concurrent_jobs_x_core_failures(num_jobs: int, ring_size: int):
         )
     ax.legend()
 
-    folder = os.path.join(
+    folder = Path(
         BASE_PATH,
         "controller_computation",
         f"concurrent_jobs_{num_jobs}",
     ).replace("cdfs", "plots")
     makedirs(folder, exist_ok=True)
-    plt.savefig(os.path.join(folder, f"concurrent_jobs_{num_jobs}_x_num_core_failures.png"))
+    plt.savefig(Path(folder, f"concurrent_jobs_{num_jobs}_x_num_core_failures.png"))
 
 
 @app.command()
 def core_failures_x_concurrent_jobs(num_cores: int, ring_size: int):
     folders = {
-        num_jobs: os.path.join(
+        num_jobs: Path(
             BASE_PATH,
             "controller_computation",
             f"concurrent_jobs_{num_jobs}",
@@ -216,7 +216,7 @@ def core_failures_x_concurrent_jobs(num_cores: int, ring_size: int):
 
     for routing in CentralizedControllerRouting:
         for num_jobs, folder in folders.items():
-            filename = os.path.join(folder, f"{routing.value}-controller_computation.cdf")
+            filename = Path(folder, f"{routing.value}-controller_computation.cdf")
             if not os.path.exists(filename):
                 print(f"File {filename} does not exist. Skipping...")
                 continue
@@ -256,9 +256,9 @@ def core_failures_x_concurrent_jobs(num_cores: int, ring_size: int):
         )
     ax.legend()
 
-    folder = os.path.join(BASE_PATH, "controller_computation").replace("cdfs", "plots")
+    folder = Path(BASE_PATH, "controller_computation").replace("cdfs", "plots")
     makedirs(folder, exist_ok=True)
-    plt.savefig(os.path.join(folder, f"{num_cores}_core_failures_x_concurrent_jobs.png"))
+    plt.savefig(Path(folder, f"{num_cores}_core_failures_x_concurrent_jobs.png"))
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 import os
 import random
 from os import makedirs
-
+from pathlib import Path
 from floodns.external.jobs_generator.job_generator import (
     build_ddp_job,
     create_jobs_different_dp_dim,
@@ -58,7 +58,7 @@ def gen_single_job_ddp_pairs(
         data_parallelism_dim=data_parallelism_dim,
     )
 
-    traffic_pairs_dir = os.path.join(
+    traffic_pairs_dir = Path(
         FLOODNS_ROOT,
         "traffic_pairs",
         f"seed_{seed}",
@@ -97,7 +97,7 @@ def gen_ddp_pairs(
         print("No jobs generated")
         return
 
-    traffic_pairs_dir = os.path.join(
+    traffic_pairs_dir = Path(
         FLOODNS_ROOT,
         "traffic_pairs",
         f"seed_{seed}",
@@ -130,7 +130,7 @@ def gen_ddp_pairs_different_sizes(
         print("No jobs generated")
         return
 
-    traffic_pairs_dir = os.path.join(
+    traffic_pairs_dir = Path(
         FLOODNS_ROOT,
         "traffic_pairs",
         f"seed_{seed}",
@@ -144,7 +144,7 @@ def save_jobs(traffic_pairs_dir: str, jobs: list, n_tors: int):
     makedirs(traffic_pairs_dir, exist_ok=True)
 
     for job in jobs:
-        ddp_filename = os.path.join(traffic_pairs_dir, f"job_{job.job_id}-{job.model.name}.txt")
+        ddp_filename = Path(traffic_pairs_dir, f"job_{job.job_id}-{job.model.name}.txt")
         write_ddp_file(n_tors=n_tors, filename=ddp_filename, job=job)
 
 

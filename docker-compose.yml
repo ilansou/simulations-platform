@@ -10,4 +10,4 @@ services:
     environment:
       - PROJECT_ROOT=/app
       - FLOODNS_ROOT=/app/floodns
-    command: ["python", "main.py"]
+    command: ["streamlit", "run", "app.py"]

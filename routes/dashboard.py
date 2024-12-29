@@ -9,7 +9,19 @@ client = MongoClient("mongodb://localhost:27017")
 db = client["experiment_db"]
 experiments_collection = db["experiments"]
 
+
 def fetch_all_experiments():
+    """
+    Fetches all experiments from the MongoDB collection.
+
+    This function retrieves all documents from the "experiments" collection in the database,
+    converts the ObjectId to a string for compatibility with Streamlit, and returns the list
+    of experiments.
+
+    Returns:
+        list[dict]: A list of dictionaries, where each dictionary represents an experiment.
+                    Returns an empty list if an error occurs.
+    """
     try:
         experiments = list(experiments_collection.find())
         for experiment in experiments:
@@ -19,7 +31,40 @@ def fetch_all_experiments():
         st.error(f"Error fetching experiments: {e}")
         return []
 
+
+def handle_action_change(action, simulation_id):
+    """
+    Handles user actions (Re-Run, Edit, Delete) on simulations.
+
+    Depending on the selected action, this function performs:
+    - "Re-Run": Sets query parameters and refreshes the app.
+    - "Edit": Sets query parameters and refreshes the app.
+    - "Delete": Deletes the simulation from the MongoDB collection.
+
+    Args:
+        action (str): The action selected by the user. Valid values are "Re-Run", "Edit", and "Delete".
+        simulation_id (str): The ID of the simulation on which the action is performed.
+    """
+    if action in ["Re-Run", "Edit"]:
+        st.query_params.simulation_id = simulation_id
+        st.rerun()
+    elif action == "Delete":
+        experiments_collection.delete_one({"_id": ObjectId(simulation_id)})
+        st.success("Simulation deleted successfully!")
+        st.rerun()
+
+
 def create_new_simulation(simulation_name, params):
+    """
+    Creates a new simulation in the MongoDB collection.
+
+    This function takes user input for a new simulation, constructs a dictionary with simulation details,
+    and inserts it into the "experiments" collection. It then refreshes the app.
+
+    Args:
+        simulation_name (str): The name of the new simulation.
+        params (str): A string containing simulation parameters (e.g., number of jobs, cores, routing algorithm).
+    """
     try:
         new_experiment = {
             "simulation_name": simulation_name,
@@ -35,13 +80,23 @@ def create_new_simulation(simulation_name, params):
     except Exception as e:
         st.error(f"Error creating new simulation: {e}")
 
+
 def main():
+    """
+    Main function to render the Streamlit simulation dashboard.
+
+    This function serves as the entry point for the Streamlit app and performs the following:
+    - Displays a button to create a new simulation.
+    - Renders a modal form for entering details of a new simulation.
+    - Fetches and displays all existing experiments from the database in a tabular format.
+    - Provides options for user actions on each experiment (Re-Run, Edit, Delete).
+    """
     st.title("Simulation Dashboard")
-    
+
     # New Simulation button
     if st.button("New Simulation"):
         st.session_state.new_simulation_modal = True
-    
+
     # Modal for creating a new simulation
     if st.session_state.get("new_simulation_modal", False):
         placeholder = st.empty()
@@ -69,49 +124,40 @@ def main():
             create_new_simulation(simulation_name, params)
             placeholder.empty()
             st.session_state.new_simulation_modal = False
-    
+
     # Fetch all experiments
     experiments = fetch_all_experiments()
 
-    # Display experiments in a table
+    # Display experiments
     if experiments:
-        df = pd.DataFrame(experiments)
-        df = df[["_id", "simulation_name", "date", "params", "state"]]
-        df.rename(columns={"state": "Is Running?"}, inplace=True)
-        df["Is Running?"] = df["Is Running?"].apply(lambda x: "✔" if x == "Running" else "✘")
-        
-        # Create a clickable link for the simulation name
-        df['simulation_name'] = df.apply(
-            lambda row: f'<a href="/experiment_details?simulation_id={row["_id"]}">{row["simulation_name"]}</a>', axis=1
-        )
-        
-        # Create actions column within the DataFrame
-        action_options = ['', 'Re-Run', 'Edit', 'Delete']  # Consistent options
-        df['Actions'] = '' # Initialize the Actions column. Important to avoid errors.
+        col1, col2, col3, col4, col5 = st.columns([2, 2, 2, 1, 2])
+        col1.markdown("**Simulation Name**")
+        col2.markdown("**Date**")
+        col3.markdown("**Params**")
+        col4.markdown("**Is Running?**")
+        col5.markdown("**Actions**")
 
-        st.markdown(df[['simulation_name', 'date', 'params', 'Is Running?', 'Actions']].to_html(escape=False, index=False), unsafe_allow_html=True)
-        
-        #Action Selection
-        for index, row in df.iterrows():
-            df.at[index, 'Actions'] = st.selectbox(
+        # Display each entry
+        for experiment in experiments:
+            col1, col2, col3, col4, col5 = st.columns([2, 2, 2, 1, 2])
+            col1.markdown(
+                f'<a href="/experiment_details?simulation_id={experiment["_id"]}">{experiment["simulation_name"]}</a>',
+                unsafe_allow_html=True)
+            col2.text(experiment["date"])
+            col3.text(experiment["params"])
+            is_running = "✔" if experiment["state"] == "Running" else "✘"
+            col4.text(is_running)
+
+            # Adding a selectbox for actions
+            action = col5.selectbox(
                 'Select Action',
-                action_options,
-                key=f"action_{row['_id']}",  # Unique key for each selectbox
-                on_change=handle_action_change,
-                args=(row['_id'],),
+                ['', 'Re-Run', 'Edit', 'Delete'],
+                key=f"action_{experiment['_id']}"
             )
 
+            # Processing the selected action
+            if action:
+                handle_action_change(action, experiment['_id'])
 
-def handle_action_change(action, simulation_id):
-    if action == "Re-Run":
-        st.experimental_set_query_params(simulation_id=simulation_id)
-        st.rerun()
-    elif action == "Edit":
-        st.experimental_set_query_params(simulation_id=simulation_id)
-        st.rerun()
-    elif action == "Delete":
-        experiments_collection.delete_one({"_id": ObjectId(simulation_id)})
-        st.rerun()
-             
-             
+
 main()

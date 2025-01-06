@@ -13,21 +13,18 @@ app = Typer()
 @app.command()
 def local_run_single_job(
     seed: int, n_core_failures: int, ring_size: int, model: str, alg: Routing
-) -> Popen:
+):
+    print(f"=== local_run_single_job called with seed={seed}, n_core_failures={n_core_failures}, "
+          f"ring_size={ring_size}, model={model}, alg={alg}")
+    # Переходим в корень
     os.chdir(FLOODNS_ROOT)
 
-    os.makedirs(Path(FLOODNS_ROOT, "runs"), exist_ok=True)
-    run_dir = Path(
-        FLOODNS_ROOT,
-        "runs",
-        f"seed_{seed}",
-        f"concurrent_jobs_1",
-        f"{n_core_failures}_core_failures",
-        f"ring_size_{ring_size}",
-        model,
-        alg.value,
-    )
-    os.makedirs(os.path.dirname(run_dir), exist_ok=True)
+    run_dir = Path(FLOODNS_ROOT, "runs", f"seed_{seed}", f"concurrent_jobs_1",
+                   f"{n_core_failures}_core_failures", f"ring_size_{ring_size}",
+                   model, alg.value)
+    os.makedirs(run_dir, exist_ok=True)
+
+    # Генерируем нужные файлы
     create_run_dir_single_job(
         num_tors=64,
         core_failures=n_core_failures,
@@ -35,8 +32,25 @@ def local_run_single_job(
         model_name=model,
         seed=seed,
     )
+
     jar_path = Path(FLOODNS_ROOT, "floodns-basic-sim.jar")
-    proc = Popen(["java", "-jar", jar_path, run_dir], stdout=PIPE, stderr=PIPE)
+    if not jar_path.exists():
+        print(f"!!! JAR file not found at {jar_path}")
+    else:
+        print(f"JAR file found at {jar_path}")
+
+    # Запускаем java -jar
+    proc = Popen(["java", "-jar", str(jar_path), str(run_dir)],
+                 stdout=PIPE, stderr=PIPE)
+    stdout_data, stderr_data = proc.communicate()
+
+    print("=== local_run_single_job STDOUT ===")
+    print(stdout_data.decode("utf-8", errors="replace"))
+    print("=== local_run_single_job STDERR ===")
+    print(stderr_data.decode("utf-8", errors="replace"))
+    print(f"=== local_run_single_job return code: {proc.returncode}")
+
+    # Возвращаем код процесса (или можно вернуть сам proc)
     return proc
 
 

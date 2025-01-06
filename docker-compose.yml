@@ -1,13 +1,27 @@
+version: "3.7"
+
 services:
+  mongo:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./mongo_data:/data/db
+
   streamlit-app:
     build:
       context: .
       dockerfile: Dockerfile
-    volumes:
-      - .:/app
+    container_name: streamlit-app
     ports:
       - "8501:8501"
+    volumes:
+      - .:/app
     environment:
-      - PROJECT_ROOT=/app
+      - MONGODB_URI=mongodb://mongo:27017
       - FLOODNS_ROOT=/app/floodns
+      - PROJECT_ROOT=/app
+    depends_on:
+      - mongo
     command: ["streamlit", "run", "app.py"]

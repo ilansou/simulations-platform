@@ -4,23 +4,17 @@ from datetime import datetime
 from pymongo import MongoClient
 from bson import ObjectId
 
-# MongoDB connection
-client = MongoClient("mongodb://localhost:27017")
-db = client["experiment_db"]
-experiments_collection = db["experiments"]
+from floodns.external.simulation.main import local_run_single_job
+from floodns.external.schemas.routing import Routing
+
+from db_client import experiments_collection
+
+
 
 
 def fetch_all_experiments():
     """
     Fetches all experiments from the MongoDB collection.
-
-    This function retrieves all documents from the "experiments" collection in the database,
-    converts the ObjectId to a string for compatibility with Streamlit, and returns the list
-    of experiments.
-
-    Returns:
-        list[dict]: A list of dictionaries, where each dictionary represents an experiment.
-                    Returns an empty list if an error occurs.
     """
     try:
         experiments = list(experiments_collection.find())
@@ -35,15 +29,6 @@ def fetch_all_experiments():
 def handle_action_change(action, simulation_id):
     """
     Handles user actions (Re-Run, Edit, Delete) on simulations.
-
-    Depending on the selected action, this function performs:
-    - "Re-Run": Sets query parameters and refreshes the app.
-    - "Edit": Sets query parameters and refreshes the app.
-    - "Delete": Deletes the simulation from the MongoDB collection.
-
-    Args:
-        action (str): The action selected by the user. Valid values are "Re-Run", "Edit", and "Delete".
-        simulation_id (str): The ID of the simulation on which the action is performed.
     """
     if action in ["Re-Run", "Edit"]:
         st.query_params.simulation_id = simulation_id
@@ -56,26 +41,48 @@ def handle_action_change(action, simulation_id):
 
 def create_new_simulation(simulation_name, params):
     """
-    Creates a new simulation in the MongoDB collection.
-
-    This function takes user input for a new simulation, constructs a dictionary with simulation details,
-    and inserts it into the "experiments" collection. It then refreshes the app.
-
-    Args:
-        simulation_name (str): The name of the new simulation.
-        params (str): A string containing simulation parameters (e.g., number of jobs, cores, routing algorithm).
+    Creates a new simulation in the MongoDB collection, а затем вызывает local_run_single_job.
     """
     try:
         new_experiment = {
             "simulation_name": simulation_name,
-            "params": params,
+            "params": params,  # например: "5,4,8,ecmp,42"
             "date": datetime.now().strftime("%Y-%m-%d"),
             "start_time": datetime.now().isoformat(),
             "end_time": None,
             "state": "Running",
         }
-        experiments_collection.insert_one(new_experiment)
+        result = experiments_collection.insert_one(new_experiment)
         st.success("New simulation created successfully!")
+
+        # =========================================================
+        # Вызов local_run_single_job после создания документа в БД
+        # =========================================================
+        # ПАРСИМ ПАРАМЕТРЫ: num_jobs, num_cores, ring_size, routing, seed
+        try:
+            num_jobs, num_cores, ring_size, routing_str, seed = params.split(",")
+            # Здесь model пока захардкожен, вы можете передавать его через форму
+            model = "BLOOM"
+
+            # Преобразуем строку в enum Routing:
+            # ecmp -> Routing.ecmp
+            # ilp_solver -> Routing.ilp_solver
+            # simulated_annealing -> Routing.simulated_annealing
+            routing_enum = Routing[routing_str]  # если строка "ecmp", будет Routing.ecmp
+
+            # Для single_job нам нужны:
+            # (seed, n_core_failures, ring_size, model, alg)
+            proc = local_run_single_job(
+                seed=int(seed),
+                n_core_failures=int(num_cores),  # решаем, что "num_cores" = "n_core_failures"
+                ring_size=int(ring_size),
+                model=model,
+                alg=routing_enum
+            )
+            st.write("local_run_single_job запущен!")
+        except Exception as e:
+            st.error(f"Ошибка при запуске симуляции: {e}")
+
         st.rerun()
     except Exception as e:
         st.error(f"Error creating new simulation: {e}")
@@ -84,12 +91,6 @@ def create_new_simulation(simulation_name, params):
 def main():
     """
     Main function to render the Streamlit simulation dashboard.
-
-    This function serves as the entry point for the Streamlit app and performs the following:
-    - Displays a button to create a new simulation.
-    - Renders a modal form for entering details of a new simulation.
-    - Fetches and displays all existing experiments from the database in a tabular format.
-    - Provides options for user actions on each experiment (Re-Run, Edit, Delete).
     """
     st.title("Simulation Dashboard")
 
@@ -106,20 +107,21 @@ def main():
             with st.form(key="new_simulation_form"):
                 st.write("Create New Simulation")
                 simulation_name = st.text_input("Simulation Name")
-                num_jobs = st.text_input("Num Jobs")
-                num_cores = st.selectbox("Num Cores", [1, 4, 8])
+                num_jobs = st.text_input("Num Jobs", value="1")
+                num_cores = st.selectbox("Num Cores (будет n_core_failures)", [1, 4, 8])
                 ring_size = st.selectbox("Ring Size", [2, 4, 8])
                 routing = st.selectbox("Routing Algorithm", ["ecmp", "ilp_solver", "simulated_annealing"])
-                seed = st.text_input("Seed")
+                seed = st.text_input("Seed", value="42")
+                # Собираем строку для params
                 params = f"{num_jobs},{num_cores},{ring_size},{routing},{seed}"
                 submit_button = st.form_submit_button(label="Create")
 
-        # Clear the placeholder container if the close button is clicked
+        # Закрываем форму, если нажали "✖"
         if close_button:
             placeholder.empty()
             st.session_state.new_simulation_modal = False
 
-        # Clear the placeholder container after the form is submitted
+        # При сабмите вызываем create_new_simulation
         if submit_button:
             create_new_simulation(simulation_name, params)
             placeholder.empty()

@@ -2,12 +2,17 @@ version: "3.7"
 
 services:
   mongo:
-    image: mongo:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.mongodb
     container_name: mongodb
     ports:
       - "27017:27017"
     volumes:
       - ./mongo_data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
 
   streamlit-app:
     build:
@@ -19,7 +24,7 @@ services:
     volumes:
       - .:/app
     environment:
-      - MONGODB_URI=mongodb://mongo:27017
+      - MONGODB_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongo:27017
       - FLOODNS_ROOT=/app/floodns
       - PROJECT_ROOT=/app
     depends_on:

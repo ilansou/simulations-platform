@@ -9,9 +9,6 @@ from floodns.external.schemas.routing import Routing
 
 from db_client import experiments_collection
 
-
-
-
 def fetch_all_experiments():
     """
     Fetches all experiments from the MongoDB collection.

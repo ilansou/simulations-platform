@@ -1,4 +1,3 @@
-# db_client.py
 import os
 import streamlit as st
 from pymongo import MongoClient
@@ -6,17 +5,17 @@ from pymongo import MongoClient
 @st.cache_resource
 def get_db_client():
     """
-    Возвращает *единый* объект MongoClient, кешируемый Streamlit
-    (доступен для всех скриптов и сохраняется между рендерами).
+    Returns a single MongoClient object, cached by Streamlit.
+    This client is available for all scripts and persists between renders.
     """
     mongo_uri = os.getenv("MONGODB_URI", "mongodb://mongo:27017")
-    # Если у вас локально: "mongodb://host.docker.internal:27017",
-    # или замените на нужный URI
+    # If running locally, you might use: "mongodb://host.docker.internal:27017"
+    # Replace with the appropriate URI if needed
     return MongoClient(mongo_uri)
 
-# создаём клиента один раз
+# Create the client once
 db_client = get_db_client()
 
-# создаём/берём базу и коллекцию
+# Create/get the database and collection
 db = db_client["experiment_db"]
 experiments_collection = db["experiments"]

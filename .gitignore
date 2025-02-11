@@ -1,1 +1,104 @@
 .venv
+<<<<<<< HEAD
+=======
+.env
+>>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
+
+floodns/traffic_pairs/
+floodns/runs/
+
+
+# Ignore IDE files
+.idea/
+*.iml
+
+# Ignore compiled files
+floodns/*.class
+floodns/target/
+
+# Ignore project files
+.project
+.settings/
+.classpath
+
+# Ignore Python cache files
+floodns/**/*.pyc
+floodns/**/__pycache__/
+
+# Ignore log files
+floodns/**/*.stdout.txt
+floodns/**/*.stderr.txt
+floodns/**/*.pickle
+
+# Ignore temporary files
+floodns/temp/
+
+# Ignore dataset files
+floodns/ml/flux_dataset/
+floodns/ml/outputs/
+floodns/ml/data/
+
+# Ignore system files
+*.DS_Store
+
+# Ignore SLURM output files
+floodns/slurm-*.out
+
+# Ignore environment files
+floodns/.env
+
+# Ignore wandb files
+floodns/wandb/
+
+# Ignore nohup output files
+floodns/nohup.out
+
+# Ignore seed-specific properties files
+floodns/**/*-seed_*.properties
+
+# Ignore VSCode files
+floodns/.vscode/
+
+# Ignore pytest cache files
+floodns/.pytest_cache/
+
+# Ignore mypy cache files
+floodns/.mypy_cache/
+
+# Ignore experiment files
+floodns/experiments/
+
+# Ignore dataset files
+floodns/datasets/
+
+# Ignore log files
+floodns/logs/
+
+# Ignore output files
+floodns/output
+
+# Ignore specific files in runs directory
+floodns/runs/**/logs*/
+floodns/runs/**/shared_memory_*.json
+floodns/runs/**/connection_comparison.txt
+floodns/runs/**/job_comparison.txt
+
+# Ignore result files
+floodns/results/**/*.cdf
+floodns/results/**/*.png
+
+# Ignore example files
+floodns/examples/
+
+# Ignore remote files
+floodns/remote/
+
+# Ignore CDF files
+floodns/cdfs/
+
+# Ignore plot files
+floodns/plots/
+
+# Ignore specific file types
+floodns/**/*.pkl
+floodns/**/*.mps

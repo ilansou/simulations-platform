@@ -1,0 +1,12 @@
+# Ignore Python bytecode files
+__pycache__
+*.pyc
+*.pyo
+
+# Ignore virtual environment
+.venv
+
+# Ignore other unnecessary files and directories
+.git
+.gitignore
+.DS_Store

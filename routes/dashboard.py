@@ -38,12 +38,12 @@ def handle_action_change(action, simulation_id):
 
 def create_new_simulation(simulation_name, params):
     """
-    Creates a new simulation in the MongoDB collection, а затем вызывает local_run_single_job.
+    Creates a new simulation in the MongoDB collection, and then calls local_run_single_job.
     """
     try:
         new_experiment = {
             "simulation_name": simulation_name,
-            "params": params,  # например: "5,4,8,ecmp,42"
+            "params": params,
             "date": datetime.now().strftime("%Y-%m-%d"),
             "start_time": datetime.now().isoformat(),
             "end_time": None,
@@ -52,33 +52,33 @@ def create_new_simulation(simulation_name, params):
         result = experiments_collection.insert_one(new_experiment)
         st.success("New simulation created successfully!")
 
-        # =========================================================
-        # Вызов local_run_single_job после создания документа в БД
-        # =========================================================
-        # ПАРСИМ ПАРАМЕТРЫ: num_jobs, num_cores, ring_size, routing, seed
+        # ============================================================
+        # Call local_run_single_job after creating a document in the DB
+        # =============================================================
+        # PARSE PARAMETERS: num_jobs, num_cores, ring_size, routing, seed
         try:
             num_jobs, num_cores, ring_size, routing_str, seed = params.split(",")
-            # Здесь model пока захардкожен, вы можете передавать его через форму
+            #Here model is hardcoded for now
             model = "BLOOM"
 
-            # Преобразуем строку в enum Routing:
+            # Let's convert the string into enum Routing:
             # ecmp -> Routing.ecmp
             # ilp_solver -> Routing.ilp_solver
             # simulated_annealing -> Routing.simulated_annealing
-            routing_enum = Routing[routing_str]  # если строка "ecmp", будет Routing.ecmp
+            routing_enum = Routing[routing_str]  # if the string is "ecmp", it will be Routing.ecmp
 
-            # Для single_job нам нужны:
+            # For single_job we need:
             # (seed, n_core_failures, ring_size, model, alg)
             proc = local_run_single_job(
                 seed=int(seed),
-                n_core_failures=int(num_cores),  # решаем, что "num_cores" = "n_core_failures"
+                n_core_failures=int(num_cores),  # we decide that "num_cores" = "n_core_failures"
                 ring_size=int(ring_size),
                 model=model,
                 alg=routing_enum
             )
-            st.write("local_run_single_job запущен!")
+            st.write("local_run_single_job launched!")
         except Exception as e:
-            st.error(f"Ошибка при запуске симуляции: {e}")
+            st.error(f"Error starting simulation: {e}")
 
         st.rerun()
     except Exception as e:
@@ -105,20 +105,20 @@ def main():
                 st.write("Create New Simulation")
                 simulation_name = st.text_input("Simulation Name")
                 num_jobs = st.text_input("Num Jobs", value="1")
-                num_cores = st.selectbox("Num Cores (будет n_core_failures)", [1, 4, 8])
+                num_cores = st.selectbox("Num Cores (will be n_core_failures)", [1, 4, 8])
                 ring_size = st.selectbox("Ring Size", [2, 4, 8])
                 routing = st.selectbox("Routing Algorithm", ["ecmp", "ilp_solver", "simulated_annealing"])
                 seed = st.text_input("Seed", value="42")
-                # Собираем строку для params
+                # We collect a string for params
                 params = f"{num_jobs},{num_cores},{ring_size},{routing},{seed}"
                 submit_button = st.form_submit_button(label="Create")
 
-        # Закрываем форму, если нажали "✖"
+        # Close the form if you pressed "✖"
         if close_button:
             placeholder.empty()
             st.session_state.new_simulation_modal = False
 
-        # При сабмите вызываем create_new_simulation
+        # When submitting, we call create_new_simulation
         if submit_button:
             create_new_simulation(simulation_name, params)
             placeholder.empty()

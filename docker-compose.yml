@@ -9,10 +9,12 @@ services:
     ports:
       - "27017:27017"
     volumes:
-      - ./mongo_data:/data/db
+      - mongodb_data:/data/db
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+    networks:
+      - app-network
 
   streamlit-app:
     build:
@@ -24,9 +26,17 @@ services:
     volumes:
       - .:/app
     environment:
-      - MONGODB_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongo:27017
-      - FLOODNS_ROOT=/app/floodns
+      - MONGODB_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongo:27017/admin?authSource=admin
       - PROJECT_ROOT=/app
     depends_on:
       - mongo
-    command: ["streamlit", "run", "app.py"]
+    networks:
+      - app-network
+    command: ["streamlit", "run", "/app/app.py"]
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:

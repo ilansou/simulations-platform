@@ -1,0 +1,6 @@
+{
+  "python.analysis.extraPaths": [
+    "./floodns"
+  ],
+  "java.compile.nullAnalysis.mode": "automatic"
+}

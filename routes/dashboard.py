@@ -4,12 +4,15 @@ from datetime import datetime
 from pymongo import MongoClient
 from bson import ObjectId
 
-# MongoDB connection
-client = MongoClient("mongodb://localhost:27017")
-db = client["experiment_db"]
-experiments_collection = db["experiments"]
+from floodns.external.simulation.main import local_run_single_job
+from floodns.external.schemas.routing import Routing
+
+from db_client import experiments_collection
 
 def fetch_all_experiments():
+    """
+    Fetches all experiments from the MongoDB collection.
+    """
     try:
         experiments = list(experiments_collection.find())
         for experiment in experiments:
@@ -19,29 +22,79 @@ def fetch_all_experiments():
         st.error(f"Error fetching experiments: {e}")
         return []
 
+
+def handle_action_change(action, simulation_id):
+    """
+    Handles user actions (Re-Run, Edit, Delete) on simulations.
+    """
+    if action in ["Re-Run", "Edit"]:
+        st.query_params.simulation_id = simulation_id
+        st.rerun()
+    elif action == "Delete":
+        experiments_collection.delete_one({"_id": ObjectId(simulation_id)})
+        st.success("Simulation deleted successfully!")
+        st.rerun()
+
+
 def create_new_simulation(simulation_name, params):
+    """
+    Creates a new simulation in the MongoDB collection, а затем вызывает local_run_single_job.
+    """
     try:
         new_experiment = {
             "simulation_name": simulation_name,
-            "params": params,
+            "params": params,  # например: "5,4,8,ecmp,42"
             "date": datetime.now().strftime("%Y-%m-%d"),
             "start_time": datetime.now().isoformat(),
             "end_time": None,
             "state": "Running",
         }
-        experiments_collection.insert_one(new_experiment)
+        result = experiments_collection.insert_one(new_experiment)
         st.success("New simulation created successfully!")
+
+        # =========================================================
+        # Вызов local_run_single_job после создания документа в БД
+        # =========================================================
+        # ПАРСИМ ПАРАМЕТРЫ: num_jobs, num_cores, ring_size, routing, seed
+        try:
+            num_jobs, num_cores, ring_size, routing_str, seed = params.split(",")
+            # Здесь model пока захардкожен, вы можете передавать его через форму
+            model = "BLOOM"
+
+            # Преобразуем строку в enum Routing:
+            # ecmp -> Routing.ecmp
+            # ilp_solver -> Routing.ilp_solver
+            # simulated_annealing -> Routing.simulated_annealing
+            routing_enum = Routing[routing_str]  # если строка "ecmp", будет Routing.ecmp
+
+            # Для single_job нам нужны:
+            # (seed, n_core_failures, ring_size, model, alg)
+            proc = local_run_single_job(
+                seed=int(seed),
+                n_core_failures=int(num_cores),  # решаем, что "num_cores" = "n_core_failures"
+                ring_size=int(ring_size),
+                model=model,
+                alg=routing_enum
+            )
+            st.write("local_run_single_job запущен!")
+        except Exception as e:
+            st.error(f"Ошибка при запуске симуляции: {e}")
+
         st.rerun()
     except Exception as e:
         st.error(f"Error creating new simulation: {e}")
 
+
 def main():
+    """
+    Main function to render the Streamlit simulation dashboard.
+    """
     st.title("Simulation Dashboard")
-    
+
     # New Simulation button
     if st.button("New Simulation"):
         st.session_state.new_simulation_modal = True
-    
+
     # Modal for creating a new simulation
     if st.session_state.get("new_simulation_modal", False):
         placeholder = st.empty()
@@ -51,67 +104,59 @@ def main():
             with st.form(key="new_simulation_form"):
                 st.write("Create New Simulation")
                 simulation_name = st.text_input("Simulation Name")
-                num_jobs = st.text_input("Num Jobs")
-                num_cores = st.selectbox("Num Cores", [1, 4, 8])
+                num_jobs = st.text_input("Num Jobs", value="1")
+                num_cores = st.selectbox("Num Cores (будет n_core_failures)", [1, 4, 8])
                 ring_size = st.selectbox("Ring Size", [2, 4, 8])
                 routing = st.selectbox("Routing Algorithm", ["ecmp", "ilp_solver", "simulated_annealing"])
-                seed = st.text_input("Seed")
+                seed = st.text_input("Seed", value="42")
+                # Собираем строку для params
                 params = f"{num_jobs},{num_cores},{ring_size},{routing},{seed}"
                 submit_button = st.form_submit_button(label="Create")
 
-        # Clear the placeholder container if the close button is clicked
+        # Закрываем форму, если нажали "✖"
         if close_button:
             placeholder.empty()
             st.session_state.new_simulation_modal = False
 
-        # Clear the placeholder container after the form is submitted
+        # При сабмите вызываем create_new_simulation
         if submit_button:
             create_new_simulation(simulation_name, params)
             placeholder.empty()
             st.session_state.new_simulation_modal = False
-    
+
     # Fetch all experiments
     experiments = fetch_all_experiments()
 
-    # Display experiments in a table
+    # Display experiments
     if experiments:
-        df = pd.DataFrame(experiments)
-        df = df[["_id", "simulation_name", "date", "params", "state"]]
-        df.rename(columns={"state": "Is Running?"}, inplace=True)
-        df["Is Running?"] = df["Is Running?"].apply(lambda x: "✔" if x == "Running" else "✘")
-        
-        # Create a clickable link for the simulation name
-        df['simulation_name'] = df.apply(
-            lambda row: f'<a href="/experiment_details?simulation_id={row["_id"]}">{row["simulation_name"]}</a>', axis=1
-        )
-        
-        # Create actions column within the DataFrame
-        action_options = ['', 'Re-Run', 'Edit', 'Delete']  # Consistent options
-        df['Actions'] = '' # Initialize the Actions column. Important to avoid errors.
+        col1, col2, col3, col4, col5 = st.columns([2, 2, 2, 1, 2])
+        col1.markdown("**Simulation Name**")
+        col2.markdown("**Date**")
+        col3.markdown("**Params**")
+        col4.markdown("**Is Running?**")
+        col5.markdown("**Actions**")
 
-        st.markdown(df[['simulation_name', 'date', 'params', 'Is Running?', 'Actions']].to_html(escape=False, index=False), unsafe_allow_html=True)
-        
-        #Action Selection
-        for index, row in df.iterrows():
-            df.at[index, 'Actions'] = st.selectbox(
+        # Display each entry
+        for experiment in experiments:
+            col1, col2, col3, col4, col5 = st.columns([2, 2, 2, 1, 2])
+            col1.markdown(
+                f'<a href="/experiment_details?simulation_id={experiment["_id"]}">{experiment["simulation_name"]}</a>',
+                unsafe_allow_html=True)
+            col2.text(experiment["date"])
+            col3.text(experiment["params"])
+            is_running = "✔" if experiment["state"] == "Running" else "✘"
+            col4.text(is_running)
+
+            # Adding a selectbox for actions
+            action = col5.selectbox(
                 'Select Action',
-                action_options,
-                key=f"action_{row['_id']}",  # Unique key for each selectbox
-                on_change=handle_action_change,
-                args=(row['_id'],),
+                ['', 'Re-Run', 'Edit', 'Delete'],
+                key=f"action_{experiment['_id']}"
             )
 
+            # Processing the selected action
+            if action:
+                handle_action_change(action, experiment['_id'])
 
-def handle_action_change(action, simulation_id):
-    if action == "Re-Run":
-        st.experimental_set_query_params(simulation_id=simulation_id)
-        st.rerun()
-    elif action == "Edit":
-        st.experimental_set_query_params(simulation_id=simulation_id)
-        st.rerun()
-    elif action == "Delete":
-        experiments_collection.delete_one({"_id": ObjectId(simulation_id)})
-        st.rerun()
-             
-             
+
 main()

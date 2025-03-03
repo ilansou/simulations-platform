@@ -1,8 +1,5 @@
 .venv
-<<<<<<< HEAD
-=======
 .env
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
 
 floodns/traffic_pairs/
 floodns/runs/

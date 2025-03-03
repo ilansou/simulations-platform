@@ -16,7 +16,7 @@ def run_experiment():
     num_tors = 64
     n_cores = 0
     ring_size = 2
-    routing = Routing.ECMP  # Use the appropriate routing algorithm
+    routing = Routing.ecmp  # Use the appropriate routing algorithm
     seed = 0
     model = "BLOOM" # or "GPT_3" or "LLAMA2_70B"
 

@@ -1,9 +1,5 @@
 import os
-<<<<<<< HEAD
-
-=======
 from pathlib import Path
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
 import pandas as pd
 import typer
 from conf import FLOODNS_ROOT

@@ -1,10 +1,6 @@
 import os
 from itertools import combinations
-<<<<<<< HEAD
-
-=======
 from pathlib import Path
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
 from floodns.external.ipc.pool import SharedMemoryPool
 from floodns.external.omniscient.controller import CentralizedController
 from floodns.external.schemas.distributed_training import DistributedTraining

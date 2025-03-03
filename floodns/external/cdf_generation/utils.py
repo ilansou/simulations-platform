@@ -1,10 +1,6 @@
 import os
 from os import makedirs
-<<<<<<< HEAD
-
-=======
 from pathlib import Path
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
 import numpy as np
 import pandas as pd
 from floodns.external.analysis.routing_strategy_comparison import compare_routing_strategies
@@ -141,11 +137,7 @@ def save_fct_cdf(
 def save_throughput_cdf(
     df: pd.DataFrame, routing: Routing, num_jobs: int, num_cores: int, ring_size: int, job_id: int
 ):
-<<<<<<< HEAD
     folder = Path(
-=======
-    folder = Path(
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
         BASE_CDF_FOLDER,
         "throughput",
         f"concurrent_jobs_{num_jobs}",
@@ -156,22 +148,14 @@ def save_throughput_cdf(
     makedirs(folder, exist_ok=True)
 
     filename = f"{routing.value}-throughput.cdf"
-<<<<<<< HEAD
     cdf_file = Path(folder, filename)
-=======
-    cdf_file = Path(folder, filename)
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
     save_cdf(data=df["sent"] / df["duration"], cdf_file=cdf_file)
 
 
 def save_controller_computation_time_cdf(
     df: pd.DataFrame, routing: Routing, num_jobs: int, num_cores: int, ring_size: int
 ):
-<<<<<<< HEAD
     folder = Path(
-=======
-    folder = Path(
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
         BASE_CDF_FOLDER,
         "controller_computation",
         f"concurrent_jobs_{num_jobs}",
@@ -180,11 +164,7 @@ def save_controller_computation_time_cdf(
     )
     makedirs(folder, exist_ok=True)
 
-<<<<<<< HEAD
     cdf_file = Path(folder, f"{routing}-controller_computation.cdf")
-=======
-    cdf_file = Path(folder, f"{routing}-controller_computation.cdf")
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
     save_cdf(data=df["computation"], cdf_file=cdf_file)
 
 

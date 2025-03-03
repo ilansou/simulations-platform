@@ -1,10 +1,6 @@
 import os
 from os import makedirs
-<<<<<<< HEAD
-
-=======
 from pathlib import Path
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
 from floodns.external.schemas.routing import Routing
 from typer import Typer
 from conf import FLOODNS_ROOT
@@ -13,10 +9,6 @@ app = Typer()
 NUM_CORE_FAILURES = [0, 1, 4, 8]
 RING_SIZES = [2, 4, 8]
 
-<<<<<<< HEAD
-
-=======
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
 @app.command()
 def create_run_dir(
     num_tors: int,

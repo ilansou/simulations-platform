@@ -1,10 +1,6 @@
 import os
 from os import makedirs
-<<<<<<< HEAD
-
-=======
 from pathlib import Path
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
 import matplotlib.pyplot as plt
 import pandas as pd
 from floodns.external.plots_generation.utils import (

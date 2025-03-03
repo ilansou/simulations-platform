@@ -1,12 +1,6 @@
 import os
-<<<<<<< HEAD
-from os import makedirs, remove
-from subprocess import Popen, run, PIPE
-
-=======
 from subprocess import Popen, run, PIPE
 from pathlib import Path
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
 from floodns.external.runs_generator.main import create_run_dir, create_run_dir_single_job
 from floodns.external.schemas.distributed_training import DistributedTraining
 from floodns.external.schemas.oversubscription import HostOversubscription
@@ -78,12 +72,7 @@ def local_run_multiple_jobs(
         alg.value,
     )
     os.makedirs(os.path.dirname(run_dir), exist_ok=True)
-<<<<<<< HEAD
-    if not os.path.exists(run_dir):
-        create_run_dir(
-=======
     create_run_dir(
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
             num_tors=64,
             num_jobs=n_jobs,
             core_failures=n_core_failures,

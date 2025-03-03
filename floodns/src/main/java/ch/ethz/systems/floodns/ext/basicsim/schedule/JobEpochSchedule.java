@@ -47,10 +47,7 @@ public class JobEpochSchedule {
         this.entries = new ArrayList<>();
         this.topology = topology;
 
-<<<<<<< HEAD
-=======
         System.out.println("Reading job epoch schedule from directory: " + baseDir);
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
         File baseDirFile = new File(baseDir);
         if (!baseDirFile.exists() || !baseDirFile.isDirectory()) {
             throw new IllegalArgumentException("Base directory does not exist: " + baseDir);

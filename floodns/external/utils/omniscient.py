@@ -1,10 +1,6 @@
 import os
 from os import listdir
-<<<<<<< HEAD
-
-=======
 from pathlib import Path
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
 import pandas as pd
 from floodns.external.schemas.distributed_training import DistributedTraining
 from conf import FLOODNS_ROOT

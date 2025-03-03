@@ -46,10 +46,7 @@ public class BasicSimulation {
         if (args.length != 1) {
             throw new IllegalArgumentException("Usage: java -jar floodns-basic-sim.jar [run directory]");
         }
-<<<<<<< HEAD
-=======
         System.out.println("Starting simulation with run directory: " + args[0]);
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
         BasicSimulation.simulate(args[0]);
     }
 

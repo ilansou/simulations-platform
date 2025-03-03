@@ -1,9 +1,5 @@
 import os
-<<<<<<< HEAD
-
-=======
 from pathlib import Path
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
 import pandas as pd
 import typer
 from floodns.external.cdf_generation.utils import save_controller_computation_time_cdf

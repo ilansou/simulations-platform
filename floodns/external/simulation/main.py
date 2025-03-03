@@ -1,12 +1,6 @@
 import os
-<<<<<<< HEAD
-from os import makedirs, remove
-from subprocess import Popen, run, PIPE
-
-=======
 from subprocess import Popen, run, PIPE
 from pathlib import Path
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
 from floodns.external.runs_generator.main import create_run_dir, create_run_dir_single_job
 from floodns.external.schemas.distributed_training import DistributedTraining
 from floodns.external.schemas.oversubscription import HostOversubscription
@@ -16,38 +10,6 @@ from conf import FLOODNS_ROOT
 
 app = Typer()
 
-<<<<<<< HEAD
-
-
-@app.command()
-def local_run_single_job(
-    seed: int, n_core_failures: int, ring_size: int, model: str, alg: Routing
-) -> Popen:
-    os.chdir(FLOODNS_ROOT)
-
-    os.makedirs(os.path.join(FLOODNS_ROOT, "runs"), exist_ok=True)
-    run_dir = os.path.join(
-        FLOODNS_ROOT,
-        "runs",
-        f"seed_{seed}",
-        f"concurrent_jobs_1",
-        f"{n_core_failures}_core_failures",
-        f"ring_size_{ring_size}",
-        model,
-        alg.value,
-    )
-    os.makedirs(os.path.dirname(run_dir), exist_ok=True)
-    if not os.path.exists(run_dir):
-        create_run_dir_single_job(
-            num_tors=64,
-            core_failures=n_core_failures,
-            ring_size=ring_size,
-            model_name=model,
-            seed=seed,
-        )
-    jar_path = os.path.join(FLOODNS_ROOT, "floodns-basic-sim.jar")
-    proc = Popen(["java", "-jar", jar_path, run_dir], stdout=PIPE, stderr=PIPE)
-=======
 @app.command()
 def local_run_single_job(
     seed: int, n_core_failures: int, ring_size: int, model: str, alg: Routing
@@ -89,7 +51,6 @@ def local_run_single_job(
     print(f"=== local_run_single_job return code: {proc.returncode}")
 
     # Возвращаем код процесса (или можно вернуть сам proc)
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
     return proc
 
 
@@ -100,13 +61,8 @@ def local_run_multiple_jobs(
     assert n_jobs > 1
     os.chdir(FLOODNS_ROOT)
 
-<<<<<<< HEAD
-    os.makedirs(os.path.join(FLOODNS_ROOT, "runs"), exist_ok=True)
-    run_dir = os.path.join(
-=======
     os.makedirs(Path(FLOODNS_ROOT, "runs"), exist_ok=True)
     run_dir = Path(
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
         FLOODNS_ROOT,
         "runs",
         f"seed_{seed}",
@@ -116,12 +72,7 @@ def local_run_multiple_jobs(
         alg.value,
     )
     os.makedirs(os.path.dirname(run_dir), exist_ok=True)
-<<<<<<< HEAD
-    if not os.path.exists(run_dir):
-        create_run_dir(
-=======
     create_run_dir(
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
             num_tors=64,
             num_jobs=n_jobs,
             core_failures=n_core_failures,
@@ -129,11 +80,7 @@ def local_run_multiple_jobs(
             routing=alg,
             seed=seed,
         )
-<<<<<<< HEAD
-    jar_path = os.path.join(FLOODNS_ROOT, "floodns-basic-sim.jar")
-=======
     jar_path = Path(FLOODNS_ROOT, "floodns-basic-sim.jar")
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
     proc = Popen(["java", "-jar", jar_path, run_dir], stdout=PIPE, stderr=PIPE)
     return proc
 
@@ -145,13 +92,8 @@ def local_run_multiple_jobs_different_ring_sizes(
     assert n_jobs > 1
     os.chdir(FLOODNS_ROOT)
 
-<<<<<<< HEAD
-    os.makedirs(os.path.join(FLOODNS_ROOT, "runs"), exist_ok=True)
-    run_dir = os.path.join(
-=======
     os.makedirs(Path(FLOODNS_ROOT, "runs"), exist_ok=True)
     run_dir = Path(
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
         FLOODNS_ROOT,
         "runs",
         f"seed_{seed}",
@@ -161,17 +103,6 @@ def local_run_multiple_jobs_different_ring_sizes(
         alg.value,
     )
     os.makedirs(os.path.dirname(run_dir), exist_ok=True)
-<<<<<<< HEAD
-    if not os.path.exists(run_dir):
-        create_run_dir(
-            num_tors=64,
-            num_jobs=n_jobs,
-            core_failures=n_core_failures,
-            routing=alg,
-            seed=seed,
-        )
-    jar_path = os.path.join(FLOODNS_ROOT, "floodns-basic-sim.jar")
-=======
     create_run_dir(
         num_tors=64,
         num_jobs=n_jobs,
@@ -180,7 +111,6 @@ def local_run_multiple_jobs_different_ring_sizes(
         seed=seed,
     )
     jar_path = Path(FLOODNS_ROOT, "floodns-basic-sim.jar")
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
     proc = Popen(["java", "-jar", jar_path, run_dir], stdout=PIPE, stderr=PIPE)
     return proc
 
@@ -201,11 +131,7 @@ def local_run(
     :param model: model to run (BLOOM, GPT_3, LLAMA2_70B)
     :param alg: routing algorithm (ecmp, mcvlc, edge_coloring, simulated_annealing, ilp_solver)
     """
-<<<<<<< HEAD
-    run_dir = os.path.join(
-=======
     run_dir = Path(
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
         FLOODNS_ROOT,
         "runs",
         f"seed_{seed}",
@@ -221,11 +147,7 @@ def local_run(
             routing=routing,
             seed=seed,
         )
-<<<<<<< HEAD
-    jar_path = os.path.join(FLOODNS_ROOT, "floodns-basic-sim.jar")
-=======
     jar_path = Path(FLOODNS_ROOT, "floodns-basic-sim.jar")
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
     proc = Popen(["java", "-jar", jar_path, run_dir])
     return proc
 

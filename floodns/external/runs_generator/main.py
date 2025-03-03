@@ -1,10 +1,6 @@
 import os
 from os import makedirs
-<<<<<<< HEAD
-
-=======
 from pathlib import Path
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
 from floodns.external.schemas.routing import Routing
 from typer import Typer
 from conf import FLOODNS_ROOT
@@ -13,10 +9,6 @@ app = Typer()
 NUM_CORE_FAILURES = [0, 1, 4, 8]
 RING_SIZES = [2, 4, 8]
 
-<<<<<<< HEAD
-
-=======
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
 @app.command()
 def create_run_dir(
     num_tors: int,
@@ -35,37 +27,19 @@ def create_run_dir(
     :param routing: Routing algorithm
     :param seed: Seed for random
     """
-<<<<<<< HEAD
-    job_dir = os.path.join(
-=======
     job_dir = Path(
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
         FLOODNS_ROOT,
         "runs",
         f"seed_{seed}",
         f"concurrent_jobs_{num_jobs}",
         f"{core_failures}_core_failures",
     )
-<<<<<<< HEAD
-    traffic_pairs_dir = os.path.join(
-=======
     traffic_pairs_dir = Path(
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
         FLOODNS_ROOT,
         "traffic_pairs",
         f"seed_{seed}",
         f"concurrent_jobs_{num_jobs}",
     )
-<<<<<<< HEAD
-    if ring_size is None:
-        job_dir = os.path.join(job_dir, "different_ring_sizes")
-        traffic_pairs_dir = os.path.join(traffic_pairs_dir, "different_ring_sizes")
-    else:
-        job_dir = os.path.join(job_dir, f"ring_size_{ring_size}")
-        traffic_pairs_dir = os.path.join(traffic_pairs_dir, f"ring_size_{ring_size}")
-
-    job_dir = os.path.join(job_dir, routing.value)
-=======
     print("job_dir", job_dir)
     print ("traffic_pairs_dir", traffic_pairs_dir)
     if ring_size is None:
@@ -76,7 +50,6 @@ def create_run_dir(
         traffic_pairs_dir = Path(traffic_pairs_dir, f"ring_size_{ring_size}")
 
     job_dir = Path(job_dir, routing.value)
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
     if not os.path.exists(job_dir):
         makedirs(job_dir, exist_ok=True)
 
@@ -102,11 +75,7 @@ def create_run_dir_single_job(
     :param seed: Seed for random
     """
     for routing in Routing:
-<<<<<<< HEAD
-        job_dir = os.path.join(
-=======
         job_dir = Path(
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
             FLOODNS_ROOT,
             "runs",
             f"seed_{seed}",
@@ -118,11 +87,7 @@ def create_run_dir_single_job(
         )
         if not os.path.exists(job_dir):
             makedirs(job_dir, exist_ok=True)
-<<<<<<< HEAD
-        traffic_pairs_dir = os.path.join(
-=======
         traffic_pairs_dir = Path(
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
             FLOODNS_ROOT,
             "traffic_pairs",
             f"seed_{seed}",
@@ -191,15 +156,9 @@ def create_files(
         traffic_pairs_dir=traffic_pairs_dir,
     )
     create_2_layer_topology(root=runs_dir, num_tors=num_tors)
-<<<<<<< HEAD
-    if os.path.exists(os.path.join(runs_dir, "schedule.csv")):
-        return
-    with open(os.path.join(runs_dir, "schedule.csv"), "w") as f:
-=======
     if os.path.exists(Path(runs_dir, "schedule.csv")):
         return
     with open(Path(runs_dir, "schedule.csv"), "w") as f:
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
         f.write("0,5,8,100000000,0,,\n")
 
 
@@ -209,11 +168,7 @@ def create_config_floodns(
     core_failures: int,
     traffic_pairs_dir: str,
 ):
-<<<<<<< HEAD
-    config_file = os.path.join(root, "config.properties")
-=======
     config_file = Path(root, "config.properties")
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
     with open(config_file, "w") as f:
         f.write("simulation_end_time_ns=604800000000000\n")
         f.write("simulation_seed=1234\n")
@@ -222,17 +177,10 @@ def create_config_floodns(
         f.write(f"job_base_dir_schedule={traffic_pairs_dir}\n")
         f.write(f"routing_strategy={routing.value}\n")
         f.write(f"num_failed_nodes={core_failures}\n")
-<<<<<<< HEAD
-
-
-def create_2_layer_topology(root: dir, num_tors: int):
-    topology_file = os.path.join(root, "topology.properties")
-=======
         
 
 def create_2_layer_topology(root: dir, num_tors: int):
     topology_file = Path(root, "topology.properties")
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
     radix = num_tors // 2
     num_cores = radix
     num_hosts_under_tor = radix

@@ -1,9 +1,5 @@
 import os
-<<<<<<< HEAD
-
-=======
 from pathlib import Path    
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
 import pandas as pd
 import typer
 from floodns.external.schemas.routing import Routing
@@ -17,11 +13,7 @@ RING_SIZES = [2, 4, 8]
 
 @app.command()
 def basic_sim(experiment_dir: str):
-<<<<<<< HEAD
-    convert_to_human_readable_helper(logs_floodns_dir=os.path.join(experiment_dir, "logs_floodns"))
-=======
     convert_to_human_readable_helper(logs_floodns_dir=Path(experiment_dir, "logs_floodns"))
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
 
 
 @app.command()
@@ -29,11 +21,7 @@ def different_ring_sizes(num_concurrent_jobs: int, seed: int):
     assert num_concurrent_jobs > 1, "num_concurrent_jobs must be greater than 1"
     for routing in Routing:
         for core_failures in NUM_FAILED_CORES:
-<<<<<<< HEAD
-            folder = os.path.join(
-=======
             folder = Path(
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
                 FLOODNS_ROOT,
                 "runs",
                 f"seed_{seed}",
@@ -94,11 +82,7 @@ def single_job(
     routing: Routing,
     model_name: str,
 ):
-<<<<<<< HEAD
-    folder = os.path.join(
-=======
     folder = Path(
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
         FLOODNS_ROOT,
         "runs",
         f"seed_{seed}",
@@ -108,27 +92,16 @@ def single_job(
         model_name,
         routing.value,
     )
-<<<<<<< HEAD
-    if not os.path.exists(os.path.join(folder, "logs_floodns")):
-        print(f"logs_floodns does not exist for {os.path.join(folder, 'logs_floodns')}.")
-        return
-    convert_to_human_readable_helper(logs_floodns_dir=os.path.join(folder, "logs_floodns"))
-=======
     if not os.path.exists(Path(folder, "logs_floodns")):
         print(f"logs_floodns does not exist for {Path(folder, 'logs_floodns')}.")
         return
     convert_to_human_readable_helper(logs_floodns_dir=Path(folder, "logs_floodns"))
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
 
 
 def multiple_jobs(
     num_concurrent_jobs: int, seed: int, core_failures: int, ring_size: int, routing: Routing
 ):
-<<<<<<< HEAD
-    folder = os.path.join(
-=======
     folder = Path(
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
         FLOODNS_ROOT,
         "runs",
         f"seed_{seed}",
@@ -137,17 +110,10 @@ def multiple_jobs(
         f"ring_size_{ring_size}",
         routing.value,
     )
-<<<<<<< HEAD
-    if not os.path.exists(os.path.join(folder, "logs_floodns")):
-        print(f"logs_floodns does not exist for {os.path.join(folder, 'logs_floodns')}.")
-        return
-    convert_to_human_readable_helper(logs_floodns_dir=os.path.join(folder, "logs_floodns"))
-=======
     if not os.path.exists(Path(folder, "logs_floodns")):
         print(f"logs_floodns does not exist for {Path(folder, 'logs_floodns')}.")
         return
     convert_to_human_readable_helper(logs_floodns_dir=Path(folder, "logs_floodns"))
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
 
 
 def convert_to_human_readable_helper(logs_floodns_dir: str):
@@ -157,11 +123,7 @@ def convert_to_human_readable_helper(logs_floodns_dir: str):
 
 
 def convert_connection_info_to_human_readable(logs_floodns_dir: str):
-<<<<<<< HEAD
-    csv_file = os.path.join(logs_floodns_dir, "connection_info.csv")
-=======
     csv_file = Path(logs_floodns_dir, "connection_info.csv")
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
     if not os.path.exists(csv_file):
         print(f"{csv_file} does not exist.")
         return
@@ -169,11 +131,7 @@ def convert_connection_info_to_human_readable(logs_floodns_dir: str):
     if connection_info.empty:
         print("No connections found.")
         return
-<<<<<<< HEAD
-    csv_file = os.path.join(FLOODNS_ROOT, "runs", "headers", "connection_info.header")
-=======
     csv_file = Path(FLOODNS_ROOT, "runs", "headers", "connection_info.header")
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
     connection_info.columns = pd.read_csv(csv_file).columns
     connection_info.sort_values(by=["start_time", "connection_id"], inplace=True)
     with open(logs_floodns_dir + "/connection_info.txt", "w+") as f:
@@ -212,11 +170,7 @@ def convert_connection_info_to_human_readable(logs_floodns_dir: str):
 
 
 def convert_job_info_to_human_readable(logs_floodns_dir: str):
-<<<<<<< HEAD
-    csv_file = os.path.join(logs_floodns_dir, "job_info.csv")
-=======
     csv_file = Path(logs_floodns_dir, "job_info.csv")
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
     if not os.path.exists(csv_file):
         print(f"{csv_file} does not exist.")
         return
@@ -224,11 +178,7 @@ def convert_job_info_to_human_readable(logs_floodns_dir: str):
     if job_info.empty:
         print("No jobs found.")
         return
-<<<<<<< HEAD
-    csv_file = os.path.join(FLOODNS_ROOT, "runs", "headers", "job_info.header")
-=======
     csv_file = Path(FLOODNS_ROOT, "runs", "headers", "job_info.header")
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
     job_info.columns = pd.read_csv(csv_file).columns
     job_info.sort_values(by=["start_time", "job_id"], inplace=True)
     job_info.drop(columns=["Unnamed: 10"], inplace=True)
@@ -258,11 +208,7 @@ def convert_job_info_to_human_readable(logs_floodns_dir: str):
 
 
 def convert_flow_info_to_human_readable(logs_floodns_dir: str):
-<<<<<<< HEAD
-    csv_file = os.path.join(logs_floodns_dir, "flow_info.csv")
-=======
     csv_file = Path(logs_floodns_dir, "flow_info.csv")
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
     if not os.path.exists(csv_file):
         print(f"{csv_file} does not exist.")
         return
@@ -270,11 +216,7 @@ def convert_flow_info_to_human_readable(logs_floodns_dir: str):
     if flow_info.empty:
         print("No flows found.")
         return
-<<<<<<< HEAD
-    csv_file = os.path.join(FLOODNS_ROOT, "runs", "headers", "flow_info.header")
-=======
     csv_file = Path(FLOODNS_ROOT, "runs", "headers", "flow_info.header")
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
     flow_info.columns = pd.read_csv(csv_file).columns
     flow_info.sort_values(by=["flow_id", "start_time"], inplace=True)
     with open(logs_floodns_dir + "/flow_info.txt", "w+") as f:

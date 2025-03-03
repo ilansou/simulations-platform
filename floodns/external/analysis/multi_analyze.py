@@ -73,11 +73,7 @@ def main():
     sub_folders = [
         coll_run_folder_path + "/" + name
         for name in os.listdir(coll_run_folder_path)
-<<<<<<< HEAD
-        if os.path.isdir(os.path.join(coll_run_folder_path, name))
-=======
         if os.path.isdir(Path(coll_run_folder_path, name))
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
     ]
 
     # Split into THREADS lists

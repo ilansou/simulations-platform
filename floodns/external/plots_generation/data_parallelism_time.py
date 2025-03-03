@@ -1,10 +1,6 @@
 import os
 from os import makedirs
-<<<<<<< HEAD
-
-=======
 from pathlib import Path
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
 import matplotlib.pyplot as plt
 import pandas as pd
 from floodns.external.plots_generation.utils import (
@@ -21,11 +17,7 @@ app = Typer()
 NUM_FAILED_CORES = [0, 1, 4, 8]
 NUM_CONCURRENT_JOBS = [1, 2, 3, 4, 5]
 RING_SIZES = [2, 4, 8]
-<<<<<<< HEAD
-BASE_PATH = os.path.join(FLOODNS_ROOT, "cdfs")
-=======
 BASE_PATH = Path(FLOODNS_ROOT, "cdfs")
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
 
 percentiles = ["Average", "Median", "25th", "75th", "90th", "95th", "99th"]
 
@@ -47,11 +39,7 @@ def concurrent_job_x_data_parallelism_time(num_cores: int, ring_size: int, job_i
     elif job_id == 4:
         num_concurrent_jobs = [5]
     folders = {
-<<<<<<< HEAD
-        num_jobs: os.path.join(
-=======
         num_jobs: Path(
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
             BASE_PATH,
             "data_parallelism_time",
             f"concurrent_jobs_{num_jobs}",
@@ -65,11 +53,7 @@ def concurrent_job_x_data_parallelism_time(num_cores: int, ring_size: int, job_i
 
     for routing in Routing:
         for folder in folders.values():
-<<<<<<< HEAD
-            filename = os.path.join(folder, f"{routing.value}-data_parallelism_time.cdf")
-=======
             filename = Path(folder, f"{routing.value}-data_parallelism_time.cdf")
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
             if not os.path.exists(filename):
                 print(f"File {filename} does not exist. Skipping...")
                 continue
@@ -98,11 +82,7 @@ def concurrent_job_x_data_parallelism_time(num_cores: int, ring_size: int, job_i
         )
     ax.legend()
 
-<<<<<<< HEAD
-    folder = os.path.join(
-=======
     folder = Path(
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
         BASE_PATH,
         "data_parallelism_time",
         f"{num_cores}_core_failures",
@@ -111,11 +91,7 @@ def concurrent_job_x_data_parallelism_time(num_cores: int, ring_size: int, job_i
     ).replace("cdfs", "plots")
     makedirs(folder, exist_ok=True)
     plt.savefig(
-<<<<<<< HEAD
-        os.path.join(
-=======
         Path(
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
             folder,
             "concurrent_job_x_data_parallelism_time.png",
         )
@@ -128,11 +104,7 @@ def ring_size_x_data_parallelism_time(num_cores: int, num_jobs: int, job_id: int
     if num_jobs in {4, 5}:
         ring_sizes = [2, 4]
     folders = {
-<<<<<<< HEAD
-        ring_size: os.path.join(
-=======
         ring_size: Path(
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
             BASE_PATH,
             "data_parallelism_time",
             f"concurrent_jobs_{num_jobs}",
@@ -147,11 +119,7 @@ def ring_size_x_data_parallelism_time(num_cores: int, num_jobs: int, job_id: int
 
     for routing in Routing:
         for folder in folders.values():
-<<<<<<< HEAD
-            filename = os.path.join(folder, f"{routing.value}-data_parallelism_time.cdf")
-=======
             filename = Path(folder, f"{routing.value}-data_parallelism_time.cdf")
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
             if not os.path.exists(filename):
                 print(f"File {filename} does not exist. Skipping...")
                 continue
@@ -180,11 +148,7 @@ def ring_size_x_data_parallelism_time(num_cores: int, num_jobs: int, job_id: int
         )
     ax.legend()
 
-<<<<<<< HEAD
-    folder = os.path.join(
-=======
     folder = Path(
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
         BASE_PATH,
         "data_parallelism_time",
         f"concurrent_jobs_{num_jobs}",
@@ -193,11 +157,7 @@ def ring_size_x_data_parallelism_time(num_cores: int, num_jobs: int, job_id: int
     ).replace("cdfs", "plots")
     makedirs(folder, exist_ok=True)
     plt.savefig(
-<<<<<<< HEAD
-        os.path.join(
-=======
         Path(
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
             folder,
             "ring_size_x_data_parallelism_time.png",
         )

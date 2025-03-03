@@ -1,8 +1,5 @@
 import os
-<<<<<<< HEAD
-=======
 from pathlib import Path
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
 import sys
 import subprocess
 from conf import FLOODNS_ROOT
@@ -13,10 +10,6 @@ from conf import FLOODNS_ROOT
 from floodns.external.simulation.main import local_run_single_job, local_run_multiple_jobs, local_run_multiple_jobs_different_ring_sizes
 from floodns.external.schemas.routing import Routing
 
-<<<<<<< HEAD
-=======
-
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
 def run_experiment():
     # Define the parameters for the experiment
     num_jobs = 1
@@ -59,11 +52,7 @@ def run_experiment():
     num_jobs = 2
     # Run the experiment (multiple jobs, same ring size)
     print(f"Starting multiple jobs simulation with routing={routing}")
-<<<<<<< HEAD
-    expected_dir = os.path.join(
-=======
     expected_dir = Path(
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
         FLOODNS_ROOT,
         "runs",
         f"seed_{seed}",

@@ -1,9 +1,5 @@
 import os
-<<<<<<< HEAD
-
-=======
 from pathlib import Path
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
 import typer
 from conf import FLOODNS_ROOT
 from floodns.external.cdf_generation.utils import (
@@ -19,11 +15,7 @@ app = typer.Typer()
 NUM_FAILED_CORES = [0, 1, 4, 8]
 NUM_CONCURRENT_JOBS = [1, 2, 3, 4, 5]
 RING_SIZES = [2, 4, 8]
-<<<<<<< HEAD
-BASE_PATH = os.path.join(FLOODNS_ROOT, "runs")
-=======
 BASE_PATH = Path(FLOODNS_ROOT, "runs")
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
 
 
 @app.command()
@@ -45,11 +37,7 @@ def generate_flow_completion_time_cdf(routing: Routing):
 
 
 def handle_fct(num_jobs: int, num_cores: int, routing: Routing, ring_size: int = -1):
-<<<<<<< HEAD
-    concurrent_jobs_path = os.path.join(
-=======
     concurrent_jobs_path = Path(
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
         BASE_PATH,
         f"concurrent_jobs_{num_jobs}",
         f"{num_cores}_core_failures",
@@ -57,20 +45,12 @@ def handle_fct(num_jobs: int, num_cores: int, routing: Routing, ring_size: int =
         routing.value,
         "logs_floodns",
     )
-<<<<<<< HEAD
-    filename = os.path.join(concurrent_jobs_path, "connection_info.csv")
-=======
     filename = Path(concurrent_jobs_path, "connection_info.csv")
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
     if not os.path.exists(filename):
         print(f"File {filename} does not exist")
         return
 
-<<<<<<< HEAD
-    job_ids_folder = os.path.join(
-=======
     job_ids_folder = Path(
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
         BASE_PATH,
         f"concurrent_jobs_{num_jobs}",
         f"{num_cores}_core_failures",

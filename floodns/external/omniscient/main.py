@@ -38,21 +38,12 @@ def omniscient(run_dir: str):
         )
     n_tors = int(response["num_tors"])
     controller = CentralizedController(n_tors=n_tors)
-<<<<<<< HEAD
-    # if not os.path.exists(os.path.join(run_dir, "controller.pkl")):
-    #     controller = CentralizedController(n_tors=n_tors)
-    #     with open(os.path.join(run_dir, "controller.pkl"), "wb") as f:
-    #         pickle.dump(controller, f)
-    # else:
-    #     with open(os.path.join(run_dir, "controller.pkl"), "rb") as f:
-=======
     # if not os.path.exists(Path(run_dir, "controller.pkl")):
     #     controller = CentralizedController(n_tors=n_tors)
     #     with open(Path(run_dir, "controller.pkl"), "wb") as f:
     #         pickle.dump(controller, f)
     # else:
     #     with open(Path(run_dir, "controller.pkl"), "rb") as f:
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
     #         controller = pickle.load(f)
     controller.cleanup()
     controller.failed_links = failed_links
@@ -61,11 +52,7 @@ def omniscient(run_dir: str):
     controller.to_virtual_links(commodities=commodities)
     controller.construct_model()
     controller.solve()
-<<<<<<< HEAD
-    # controller.problem.writeLP(os.path.join(run_dir, "problem.lp"))
-=======
     # controller.problem.writeLP(Path(run_dir, "problem.lp"))
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
 
     assignments = controller.fetch_solution(commodities=commodities)
     shared_memory.write(assignments)
@@ -79,11 +66,7 @@ def omniscient_no_failures(
     load: float,
     parallel: DistributedTraining,
 ):
-<<<<<<< HEAD
-    jobs_dir = os.path.join(
-=======
     jobs_dir = Path(
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
         FLOODNS_ROOT,
         "traffic_pairs",
         f"{level}_level",
@@ -107,11 +90,7 @@ def omniscient_node_failures(
     num_failed_nodes: int,
     parallel: DistributedTraining,
 ):
-<<<<<<< HEAD
-    jobs_dir = os.path.join(
-=======
     jobs_dir = Path(
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
         FLOODNS_ROOT,
         "traffic_pairs",
         f"{level}_level",
@@ -123,11 +102,7 @@ def omniscient_node_failures(
     jobs = load_jobs(
         level=level, n_tors=n_tors, bw=bw, load=load, parallel=parallel, job_ids=job_ids
     )
-<<<<<<< HEAD
-    failure_file = os.path.join(
-=======
     failure_file = Path(
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
         FLOODNS_ROOT,
         "traffic_pairs",
         f"{level}_level",
@@ -148,11 +123,7 @@ def omniscient_link_failures(
     link_failure_rate: float,
     parallel: DistributedTraining,
 ):
-<<<<<<< HEAD
-    jobs_dir = os.path.join(
-=======
     jobs_dir = Path(
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
         FLOODNS_ROOT,
         "traffic_pairs",
         f"{level}_level",
@@ -164,11 +135,7 @@ def omniscient_link_failures(
     jobs = load_jobs(
         level=level, n_tors=n_tors, bw=bw, load=load, parallel=parallel, job_ids=job_ids
     )
-<<<<<<< HEAD
-    failure_file = os.path.join(
-=======
     failure_file = Path(
->>>>>>> e55857a8430394049ed29d2cc14101bf4479bdb5
         FLOODNS_ROOT,
         "traffic_pairs",
         f"{level}_level",

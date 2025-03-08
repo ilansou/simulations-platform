@@ -16,12 +16,12 @@ def render_output_files(folder_path: str):
     """
     folder_abs = os.path.abspath(folder_path)
     if not os.path.exists(folder_abs) or not os.path.isdir(folder_abs):
-        st.write(f"Папка не найдена или не является директорией: {folder_abs}")
+        st.write(f"Folder not found or is not a directory: {folder_abs}")
         return
 
     files = os.listdir(folder_abs)
     if not files:
-        st.write("Нет файлов для скачивания в этой папке.")
+        st.write("There are no files to download in this folder.")
     else:
         for fname in files:
             fpath = os.path.join(folder_abs, fname)
@@ -80,7 +80,7 @@ def re_run_experiment(simulation_id):
         )
         st.write("local_run_single_job зcompleted. See logs in console Docker.")
 
-        # Меняем статус на Finished (демо)
+        # Change the status to Finished (demo)
         experiments_collection.update_one(
             {"_id": ObjectId(simulation_id)},
             {
@@ -172,7 +172,7 @@ def display_page(simulation_id):
                 with st.form(key="edit_experiment_form"):
                     st.text_input("Simulation Name", key="simulation_name", value=experiment["simulation_name"])
                     st.text_input("Num Jobs", key="num_jobs", value=params_array[0])
-                    # Для индекса selectbox сделаем небольшую логику:
+                    # For the selectbox index, let's make a little logic:
                     possible_cores = [1, 4, 8]
                     core_index = possible_cores.index(int(params_array[1])) if int(params_array[1]) in possible_cores else 0
 

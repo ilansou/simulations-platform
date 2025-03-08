@@ -3,12 +3,37 @@ import pandas as pd
 from datetime import datetime
 from pymongo import MongoClient
 from bson import ObjectId
+import os
 
 from floodns.external.simulation.main import local_run_single_job
 from floodns.external.schemas.routing import Routing
 from db_client import experiments_collection
 
 
+def render_output_files(folder_path: str):
+    """
+    Checks the indicator, recalculates files and adds download buttons.
+    """
+    folder_abs = os.path.abspath(folder_path)
+    if not os.path.exists(folder_abs) or not os.path.isdir(folder_abs):
+        st.write(f"Папка не найдена или не является директорией: {folder_abs}")
+        return
+
+    files = os.listdir(folder_abs)
+    if not files:
+        st.write("Нет файлов для скачивания в этой папке.")
+    else:
+        for fname in files:
+            fpath = os.path.join(folder_abs, fname)
+            if os.path.isfile(fpath):
+                with open(fpath, "rb") as f:
+                    file_bytes = f.read()
+                st.download_button(
+                    label=f"Download {fname}",
+                    data=file_bytes,
+                    file_name=fname,
+                    mime="application/octet-stream"
+                )
 
 def fetch_experiment_details(simulation_id):
     try:
@@ -29,7 +54,7 @@ def re_run_experiment(simulation_id):
     print(">>> re_run_experiment CALLED!", simulation_id)
     st.write(">>> re_run_experiment CALLED!", simulation_id)
     try:
-        # Ставим статус
+        # Set the status
         experiments_collection.update_one(
             {"_id": ObjectId(simulation_id)},
             {"$set": {"state": "Re-Running"}}
@@ -135,6 +160,13 @@ def display_page(simulation_id):
             }
             st.write(pd.DataFrame([params_dict]))
 
+            # New section for downloading files
+            st.subheader("Output Files")
+            if "path" in experiment and experiment["path"]:
+                render_output_files(experiment["path"])
+            else:
+                st.write("This experiment does not have a 'path' field - there is nowhere to look for files")
+
             # Modal for editing
             if st.session_state.get("show_modal", False):
                 with st.form(key="edit_experiment_form"):
@@ -177,6 +209,9 @@ def display_page(simulation_id):
             if new_message:
                 st.session_state.chat_messages.append(new_message)
                 st.rerun()
+
+
+
 
 
 def main():

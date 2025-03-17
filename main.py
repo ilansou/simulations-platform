@@ -10,6 +10,13 @@ from conf import FLOODNS_ROOT
 from floodns.external.simulation.main import local_run_single_job, local_run_multiple_jobs, local_run_multiple_jobs_different_ring_sizes
 from floodns.external.schemas.routing import Routing
 
+def ensure_directory_exists(directory):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+        print(f"Created directory: {directory}")
+    else:
+        print(f"Directory already exists: {directory}")
+
 def run_experiment():
     # Define the parameters for the experiment
     num_jobs = 1
@@ -19,6 +26,16 @@ def run_experiment():
     routing = Routing.ecmp  # Use the appropriate routing algorithm
     seed = 0
     model = "BLOOM" # or "GPT_3" or "LLAMA2_70B"
+    
+    # Ensure necessary directories exist
+    traffic_pairs_dir = Path(FLOODNS_ROOT, "traffic_pairs", f"seed_{seed}", f"concurrent_jobs_{num_jobs}")
+    ensure_directory_exists(traffic_pairs_dir)
+
+    different_ring_sizes_dir = Path(traffic_pairs_dir, "different_ring_sizes")
+    ensure_directory_exists(different_ring_sizes_dir)
+
+    ring_size_dir = Path(traffic_pairs_dir, f"ring_size_{ring_size}")
+    ensure_directory_exists(ring_size_dir)
 
     # Run the experiment (single job)
     proc = local_run_single_job(
@@ -27,13 +44,20 @@ def run_experiment():
         ring_size=ring_size,
         model=model,
         alg=routing
-    )
+    ) 
+    # print(f"Simulation started with PID: {proc.pid}")
+    # proc.wait()
+    # print("stdout:")
+    # print(proc.stdout.read().decode("utf-8"))
+    # print("stderr:")
+    # print(proc.stderr.read().decode("utf-8"))
+    
     print(f"Simulation started with PID: {proc.pid}")
-    proc.wait()
+    stdout, stderr = proc.communicate()
     print("stdout:")
-    print(proc.stdout.read().decode("utf-8"))
+    print(stdout.decode("utf-8"))
     print("stderr:")
-    print(proc.stderr.read().decode("utf-8"))
+    print(stderr.decode("utf-8"))
 
     num_jobs = 2
     # Run the experiment (multiple jobs, different ring sizes)

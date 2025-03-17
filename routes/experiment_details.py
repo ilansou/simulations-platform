@@ -29,7 +29,6 @@ def re_run_experiment(simulation_id):
     print(">>> re_run_experiment CALLED!", simulation_id)
     st.write(">>> re_run_experiment CALLED!", simulation_id)
     try:
-        # Ставим статус
         experiments_collection.update_one(
             {"_id": ObjectId(simulation_id)},
             {"$set": {"state": "Re-Running"}}
@@ -55,7 +54,6 @@ def re_run_experiment(simulation_id):
         )
         st.write("local_run_single_job зcompleted. See logs in console Docker.")
 
-        # Меняем статус на Finished (демо)
         experiments_collection.update_one(
             {"_id": ObjectId(simulation_id)},
             {

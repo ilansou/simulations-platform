@@ -1,8 +1,10 @@
 import os
+from dotenv import load_dotenv
 import streamlit as st
 from pymongo import MongoClient
 from pymongo.errors import ServerSelectionTimeoutError
 
+load_dotenv()
 
 @st.cache_resource
 def get_db_client():
@@ -10,6 +12,7 @@ def get_db_client():
     Returns a cached MongoClient object with proper error handling
     """
     mongo_uri = os.getenv("MONGODB_URI")
+    st.write(mongo_uri)
     if not mongo_uri:
         st.error("MongoDB URI not found in environment variables!")
         return None

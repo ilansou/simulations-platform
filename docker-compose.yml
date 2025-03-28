@@ -5,6 +5,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.mongodb
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: "1.0"
+    #       memory: 2048M
+    #     reservations:
+    #       cpus: "0.5"
+    #       memory: 1024M
     container_name: mongodb
     ports:
       - "27017:27017"

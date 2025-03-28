@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime
 from pymongo import MongoClient
 from bson import ObjectId
+import os
 
 from floodns.external.simulation.main import local_run_single_job
 from floodns.external.schemas.routing import Routing
@@ -55,7 +56,7 @@ def re_run_experiment(simulation_id):
         )
         st.write("local_run_single_job зcompleted. See logs in console Docker.")
 
-        # Меняем статус на Finished (демо)
+        # Change the status to Finished (demo)
         experiments_collection.update_one(
             {"_id": ObjectId(simulation_id)},
             {
@@ -123,6 +124,20 @@ def display_page(simulation_id):
             st.write(f"Start time: {experiment['start_time']}")
             st.write(f"End time: {experiment['end_time']}")
             st.write(f"State: {experiment['state']}")
+
+            if experiment.get("state") == "Finished" and experiment.get("run_dir"):
+                output_path = os.path.join(experiment["run_dir"], "output.txt")
+                st.subheader("Simulation Output")
+                if os.path.exists(output_path):
+                    with open(output_path, "rb") as f:
+                        st.download_button(
+                            label="Download output.txt",
+                            data=f,
+                            file_name="output.txt",
+                            mime="text/plain"
+                        )
+                else:
+                    st.info("⚠️ output.txt not found in the specified folder")
 
             st.subheader("Parameters")
             params_array = experiment["params"].split(",")

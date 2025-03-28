@@ -3,10 +3,11 @@ import pandas as pd
 from datetime import datetime
 from pymongo import MongoClient
 from bson import ObjectId
+import os
 
 from floodns.external.simulation.main import local_run_single_job
 from floodns.external.schemas.routing import Routing
-
+from conf import FLOODNS_ROOT
 from db_client import experiments_collection
 
 def fetch_all_experiments():
@@ -58,31 +59,40 @@ def create_new_simulation(simulation_name, params):
         # PARSE PARAMETERS: num_jobs, num_cores, ring_size, routing, seed
         try:
             num_jobs, num_cores, ring_size, routing_str, seed = params.split(",")
-            #Here model is hardcoded for now
             model = "BLOOM"
+            routing_enum = Routing[routing_str]
 
-            # Let's convert the string into enum Routing:
-            # ecmp -> Routing.ecmp
-            # ilp_solver -> Routing.ilp_solver
-            # simulated_annealing -> Routing.simulated_annealing
-            routing_enum = Routing[routing_str]  # if the string is "ecmp", it will be Routing.ecmp
+            # Build a path to the folder with the simulation results
+            run_dir = os.path.join(
+                FLOODNS_ROOT, "runs", f"seed_{seed}", "concurrent_jobs_1",
+                f"{num_cores}_core_failures", f"ring_size_{ring_size}",
+                model, routing_str
+            )
 
-            # For single_job we need:
-            # (seed, n_core_failures, ring_size, model, alg)
+            # Run the simulation
             proc = local_run_single_job(
                 seed=int(seed),
-                n_core_failures=int(num_cores),  # we decide that "num_cores" = "n_core_failures"
+                n_core_failures=int(num_cores),
                 ring_size=int(ring_size),
                 model=model,
                 alg=routing_enum
             )
+
+            # Save the path to the results in the database
+            experiments_collection.update_one(
+                {"_id": result.inserted_id},
+                {"$set": {"run_dir": run_dir}}
+            )
+
             st.write("local_run_single_job launched!")
+
         except Exception as e:
             st.error(f"Error starting simulation: {e}")
 
-        st.rerun()
+        st.rerun()  # <== ВОТ ЭТА СТРОЧКА
     except Exception as e:
         st.error(f"Error creating new simulation: {e}")
+
 
 
 def main():

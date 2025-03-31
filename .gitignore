@@ -4,7 +4,6 @@
 floodns/traffic_pairs/
 floodns/runs/
 
-
 # Ignore IDE files
 .idea/
 *.iml

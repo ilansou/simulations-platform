@@ -149,6 +149,20 @@ def display_page(simulation_id):
             st.write(f"End time: {experiment['end_time']}")
             st.write(f"State: {experiment['state']}")
 
+            if experiment.get("state") == "Finished" and experiment.get("run_dir"):
+                output_path = os.path.join(experiment["run_dir"], "output.txt")
+                st.subheader("Simulation Output")
+                if os.path.exists(output_path):
+                    with open(output_path, "rb") as f:
+                        st.download_button(
+                            label="Download output.txt",
+                            data=f,
+                            file_name="output.txt",
+                            mime="text/plain"
+                        )
+                else:
+                    st.info("⚠️ output.txt not found in the specified folder")
+
             st.subheader("Parameters")
             params_array = experiment["params"].split(",")
             params_dict = {

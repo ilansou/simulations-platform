@@ -1,5 +1,5 @@
 import streamlit as st
-from llm.rag_pipeline import RAGPipeline
+from rag_pipeline import RAGPipeline
 
 def run():
     st.title("Query Simulation Data")

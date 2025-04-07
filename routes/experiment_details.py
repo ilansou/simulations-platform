@@ -150,6 +150,31 @@ def ingest_experiment_data(experiment):
     return False
 
 
+def save_chat_message(simulation_id, question, answer):
+    """Save chat message to the database to persist between sessions"""
+    try:
+        experiments_collection.update_one(
+            {"_id": ObjectId(simulation_id)},
+            {"$push": {"chat_history": {"question": question, "answer": answer, "timestamp": datetime.now().isoformat()}}}
+        )
+        return True
+    except Exception as e:
+        st.error(f"Error saving chat message: {e}")
+        return False
+
+
+def load_chat_history(simulation_id):
+    """Load chat history from the database"""
+    try:
+        experiment = experiments_collection.find_one({"_id": ObjectId(simulation_id)})
+        if experiment and "chat_history" in experiment:
+            return [(msg["question"], msg["answer"]) for msg in experiment["chat_history"]]
+        return []
+    except Exception as e:
+        st.error(f"Error loading chat history: {e}")
+        return []
+
+
 def display_page(simulation_id):
     tab1, tab2 = st.tabs(["Experiment Details", "Chat"])
 
@@ -222,8 +247,19 @@ def display_page(simulation_id):
 
     with tab2:
         st.title("Chat with Your Simulation Data")
+        
+        # Display available files and example questions at the top
+        if "files_ingested" in st.session_state and st.session_state.files_ingested:
+            if "ingested_files" in st.session_state and st.session_state.ingested_files:
+                st.info(f"You can ask questions about these simulation files: {', '.join(st.session_state.ingested_files)}")
+                st.write("Example questions you can ask:")
+                st.write("- What is the average bandwidth in the flow_bandwidth.csv file?")
+                st.write("- How many nodes are in the simulation?")
+                st.write("- Summarize the connection information data.")
+        
+        # Load chat history from database instead of session state
         if "chat_history" not in st.session_state:
-            st.session_state.chat_history = []
+            st.session_state.chat_history = load_chat_history(simulation_id)
 
         # Display chat history
         for i, (question, answer) in enumerate(st.session_state.chat_history):
@@ -233,14 +269,6 @@ def display_page(simulation_id):
                 st.write(answer)
 
         if "files_ingested" in st.session_state and st.session_state.files_ingested:
-            # Show which files are available for querying
-            if "ingested_files" in st.session_state and st.session_state.ingested_files:
-                st.info(f"You can ask questions about these simulation files: {', '.join(st.session_state.ingested_files)}")
-                st.write("Example questions you can ask:")
-                st.write("- What is the average bandwidth in the flow_bandwidth.csv file?")
-                st.write("- How many nodes are in the simulation?")
-                st.write("- Summarize the connection information data.")
-            
             # Get user question
             user_question = st.chat_input("Ask about your simulation data...")
             
@@ -253,7 +281,10 @@ def display_page(simulation_id):
                         with st.spinner("Analyzing simulation data..."):
                             answer = generate_response(user_question)
                             st.write(answer)
+                            # Save to session state
                             st.session_state.chat_history.append((user_question, answer))
+                            # Save to database
+                            save_chat_message(simulation_id, user_question, answer)
                     except Exception as e:
                         error_message = f"Error generating response: {str(e)}"
                         st.error(error_message)
@@ -263,6 +294,8 @@ def display_page(simulation_id):
                             st.code(traceback.format_exc(), language="python")
                         # Still add to chat history so user knows there was an error
                         st.session_state.chat_history.append((user_question, error_message))
+                        # Save error to database too
+                        save_chat_message(simulation_id, user_question, error_message)
         else:
             st.warning("Chat is only available for finished experiments with processed output files. Please ensure your experiment is complete and the data has been processed successfully.")
             

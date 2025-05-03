@@ -111,12 +111,12 @@ def create_new_simulation(simulation_name, params):
             model = "BLOOM"
             routing_enum = Routing[routing_str]
 
-            # Build a path to the folder with the simulation results
-            run_dir = os.path.join(
-                FLOODNS_ROOT, "runs", f"seed_{seed}", "concurrent_jobs_1",
-                f"{num_cores}_core_failures", f"ring_size_{ring_size}",
-                model, routing_str, "logs_floodns"
-            )
+            # # Build a path to the folder with the simulation results
+            # run_dir = os.path.join(
+            #     FLOODNS_ROOT, "runs", f"seed_{seed}", "concurrent_jobs_1",
+            #     f"{num_cores}_core_failures", f"ring_size_{ring_size}",
+            #     model, routing_str, "logs_floodns"
+            # )
 
             # Ensure the directory exists
             # os.makedirs(run_dir, exist_ok=True)

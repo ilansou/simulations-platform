@@ -95,6 +95,9 @@ def create_run_dir_single_job(
             f"ring_size_{ring_size}",
             model_name,
         )
+        if not os.path.exists(traffic_pairs_dir):
+            makedirs(traffic_pairs_dir, exist_ok=True)
+            
         create_files(
             runs_dir=job_dir,
             routing=routing,

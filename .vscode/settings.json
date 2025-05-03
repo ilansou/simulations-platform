@@ -1,4 +1,8 @@
 {
   "python.analysis.extraPaths": ["./floodns"],
-  "java.compile.nullAnalysis.mode": "automatic"
+  "java.compile.nullAnalysis.mode": "automatic",
+  "editor.cursorBlinking": "expand",
+  "editor.cursorSmoothCaretAnimation": "on",
+  "editor.wordWrap": "on",
+  "editor.wordWrapColumn": 120
 }

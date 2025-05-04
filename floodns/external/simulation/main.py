@@ -36,9 +36,9 @@ def local_run_single_job(seed: int, n_core_failures: int, ring_size: int, model:
             model,
             alg.value,
         )
-    
-    print(f"Run directory: {run_dir}")
 
+    print(f"Run directory: {run_dir}")
+    
     jar_path = Path(FLOODNS_ROOT, "floodns-basic-sim.jar")
     if not jar_path.exists():
         print(f"!!! JAR file not found at {jar_path}")
@@ -66,6 +66,9 @@ def local_run_multiple_jobs(
 ) -> Popen:
     assert n_jobs > 1
 
+    print(f"=== local_run_multiple_jobs called with seed={seed}, n_jobs={n_jobs}, "
+          f"ring_size={ring_size}, alg={alg}, n_core_failures={n_core_failures}")
+
     create_run_dir(
             num_tors=64,
             num_jobs=n_jobs,
@@ -85,7 +88,21 @@ def local_run_multiple_jobs(
     )
     
     jar_path = Path(FLOODNS_ROOT, "floodns-basic-sim.jar")
-    proc = Popen(["java", "-jar", jar_path, run_dir], stdout=PIPE, stderr=PIPE)
+    if not jar_path.exists():
+        print(f"!!! JAR file not found at {jar_path}")
+    else:
+        print(f"JAR file found at {jar_path}")
+        
+    # Run java -jar and wait for it to complete
+    proc = Popen(["java", "-jar", str(jar_path), str(run_dir)], stdout=PIPE, stderr=PIPE)
+    stdout_data, stderr_data = proc.communicate()
+    
+    print("=== local_run_multiple_jobs STDOUT ===")
+    print(stdout_data.decode("utf-8", errors="replace"))
+    print("=== local_run_multiple_jobs STDERR ===")
+    print(stderr_data.decode("utf-8", errors="replace"))
+    print(f"=== local_run_multiple_jobs return code: {proc.returncode}")
+    
     return proc
 
 @app.command()
@@ -94,6 +111,9 @@ def local_run_multiple_jobs_different_ring_sizes(
 ) -> Popen:
     assert n_jobs > 1
     
+    print(f"=== local_run_multiple_jobs_different_ring_sizes called with seed={seed}, "
+          f"n_jobs={n_jobs}, n_core_failures={n_core_failures}, alg={alg}")
+
     create_run_dir(
         num_tors=64,
         num_jobs=n_jobs,
@@ -102,17 +122,33 @@ def local_run_multiple_jobs_different_ring_sizes(
         seed=seed,
     )
     
+    # Define the run_dir properly
     run_dir = Path(
         FLOODNS_ROOT,
         "runs",
         f"seed_{seed}",
         f"concurrent_jobs_{n_jobs}",
         f"{n_core_failures}_core_failures",
-        "different_ring_sizes",
+        "different_ring_sizes"
+        
     )
     
     jar_path = Path(FLOODNS_ROOT, "floodns-basic-sim.jar")
-    proc = Popen(["java", "-jar", jar_path, run_dir], stdout=PIPE, stderr=PIPE)
+    if not jar_path.exists():
+        print(f"!!! JAR file not found at {jar_path}")
+    else:
+        print(f"JAR file found at {jar_path}")
+        
+    # Run java -jar and wait for it to complete
+    proc = Popen(["java", "-jar", str(jar_path), str(run_dir)], stdout=PIPE, stderr=PIPE)
+    stdout_data, stderr_data = proc.communicate()
+    
+    print("=== local_run_multiple_jobs_different_ring_sizes STDOUT ===")
+    print(stdout_data.decode("utf-8", errors="replace"))
+    print("=== local_run_multiple_jobs_different_ring_sizes STDERR ===")
+    print(stderr_data.decode("utf-8", errors="replace"))
+    print(f"=== local_run_multiple_jobs_different_ring_sizes return code: {proc.returncode}")
+    
     return proc
 
 if __name__ == "__main__":

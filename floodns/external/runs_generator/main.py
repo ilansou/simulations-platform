@@ -59,6 +59,7 @@ def create_run_dir(
         core_failures=core_failures,
         traffic_pairs_dir=traffic_pairs_dir,
         num_tors=num_tors,
+        seed=seed,
     )
 
 
@@ -104,6 +105,7 @@ def create_run_dir_single_job(
             core_failures=core_failures,
             traffic_pairs_dir=traffic_pairs_dir,
             num_tors=num_tors,
+            seed=seed,
         )
 
 
@@ -151,12 +153,14 @@ def create_files(
     core_failures: int,
     traffic_pairs_dir: str,
     num_tors: int,
+    seed: int,
 ):
     create_config_floodns(
         root=runs_dir,
         routing=routing,
         core_failures=core_failures,
         traffic_pairs_dir=traffic_pairs_dir,
+        seed=seed,
     )
     create_2_layer_topology(root=runs_dir, num_tors=num_tors)
     if os.path.exists(Path(runs_dir, "schedule.csv")):
@@ -170,11 +174,12 @@ def create_config_floodns(
     routing: Routing,
     core_failures: int,
     traffic_pairs_dir: str,
+    seed: int,
 ):
     config_file = Path(root, "config.properties")
     with open(config_file, "w") as f:
         f.write("simulation_end_time_ns=604800000000000\n")
-        f.write("simulation_seed=1234\n")
+        f.write(f"simulation_seed={seed}\n")
         f.write("filename_topology=topology.properties\n")
         f.write("filename_schedule=schedule.csv\n")
         f.write(f"job_base_dir_schedule={traffic_pairs_dir}\n")

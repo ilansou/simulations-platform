@@ -2,11 +2,8 @@ import os
 import json
 from pathlib import Path
 from conf import FLOODNS_ROOT
-from floodns.external.simulation.main import local_run_single_job, local_run_multiple_jobs, local_run_multiple_jobs_different_ring_sizes
+from floodns.external.simulation.main import local_run_single_job, local_run_multiple_jobs, local_run_multiple_jobs_different_ring_size
 from floodns.external.schemas.routing import Routing
-
-print("In main.py - FLOODNS_ROOT:", FLOODNS_ROOT)
-print("FLOODNS_ROOT exists:", os.path.exists(FLOODNS_ROOT))
 
 def load_configurations(config_file="configurations.json"):
     """
@@ -28,14 +25,14 @@ def load_configurations(config_file="configurations.json"):
     print(f"Loaded {len(configurations)} configurations from {config_path}")
     return configurations
 
-def run_experiment(num_jobs, seed, n_core_failures, ring_size, model, routing):
+def run_experiment(num_jobs, seed, n_core_failures, ring_size: int | str, model, routing):
     """
     Run experiment based on configuration parameters.
     
     Args:
         num_jobs (int): Number of jobs
         n_core_failures (int): Number of core failures
-        ring_size (int): Ring size (-1 for different ring sizes)
+        ring_size (int or str): Ring size 
         routing (str): Routing algorithm
         seed (int): Random seed
         model (str or None): Model name for single job
@@ -75,16 +72,16 @@ def run_experiment(num_jobs, seed, n_core_failures, ring_size, model, routing):
             print(f"Error running single job experiment: {str(e)}")
             success = False
 
-    if num_jobs > 1 and ring_size == -1:
+    if num_jobs > 1 and ring_size == "different":
         try:
-            print(f"Running multiple jobs experiment (different ring sizes): jobs={num_jobs}, cores={n_core_failures}, routing={routing}, seed={seed}")
-            proc = local_run_multiple_jobs_different_ring_sizes(
+            print(f"Running multiple jobs experiment (different ring size): jobs={num_jobs}, cores={n_core_failures}, routing={routing}, seed={seed}")
+            proc = local_run_multiple_jobs_different_ring_size(
                 seed=seed,
                 n_jobs=num_jobs,
                 n_core_failures=n_core_failures,
                 alg=routing_enum
             )
-            print(f"Multiple jobs (different ring sizes) simulation started with PID: {proc.pid}")
+            print(f"Multiple jobs (different ring size) simulation started with PID: {proc.pid}")
             stdout, stderr = proc.communicate()
             print("stdout:")
             print(stdout.decode("utf-8") if stdout else "No stdout")
@@ -92,14 +89,14 @@ def run_experiment(num_jobs, seed, n_core_failures, ring_size, model, routing):
             print(stderr.decode("utf-8") if stderr else "No stderr")
             
             if proc.returncode != 0:
-                print(f"Multiple jobs (different ring sizes) experiment failed with return code {proc.returncode}")
+                print(f"Multiple jobs (different ring size) experiment failed with return code {proc.returncode}")
                 success = False
 
         except Exception as e:
-            print(f"Error running multiple jobs (different ring sizes) experiment: {str(e)}")
+            print(f"Error running multiple jobs (different ring size) experiment: {str(e)}")
             success = False
 
-    if num_jobs > 1 and ring_size != -1:
+    if num_jobs > 1 and ring_size != "different":
         try:
             print(f"Running multiple jobs experiment (same ring size): jobs={num_jobs}, cores={n_core_failures}, ring_size={ring_size}, routing={routing}, seed={seed}")
             proc = local_run_multiple_jobs(
@@ -135,12 +132,12 @@ def main():
 
     successful_runs = 0
     failed_runs = 0
-    max_runs = 5
-    actual_configurations = configurations[:max_runs]
+    # max_runs = 5
     
+    actual_configurations = configurations[1040:]
     for i, config in enumerate(actual_configurations):
-        print(f"\nRunning experiment {i+1}/{len(actual_configurations)}")
-        ring_size_str = "different ring sizes" if config["ring_size"] == -1 else f"ring size {config['ring_size']}"
+        print(f"\nRunning experiment {i+1}/{len(configurations)}")
+        ring_size_str = "different ring size" if config["ring_size"] =="different" else f"ring size {config['ring_size']}"
         model_str = f", model: {config['model']}" if config["model"] else ""
         print(f"Config: {config['num_jobs']} jobs, {config['n_core_failures']} core failures, {ring_size_str}, {config['routing']}, seed {config['seed']}{model_str}")
         
@@ -161,7 +158,7 @@ def main():
             print(f"Experiment {i+1} failed")
     
     print(f"\nExperiment Summary:")
-    print(f"Total experiments run: {len(actual_configurations)}")
+    print(f"Total experiments run: {len(configurations)}")
     print(f"Successful runs: {successful_runs}")
     print(f"Failed runs: {failed_runs}")
 

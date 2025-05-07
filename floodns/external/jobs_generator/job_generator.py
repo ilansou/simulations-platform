@@ -75,10 +75,18 @@ def build_ddp_job(
     job_id: int,
     radix: int,
     tor_to_nics: dict,
-    data_parallelism_dim: int,
+    data_parallelism_dim: int | str,
 ):
+    if data_parallelism_dim == "different":
+        print(f"Warning: build_ddp_job called with data_parallelism_dim='different'. Defaulting to 2.")
+        actual_dp_dim = 2 
+    elif isinstance(data_parallelism_dim, int):
+        actual_dp_dim = data_parallelism_dim
+    else:
+        raise TypeError(f"Unexpected type for data_parallelism_dim: {type(data_parallelism_dim)}")
+
     full_copies = []
-    for i in range(data_parallelism_dim):
+    for i in range(actual_dp_dim):
         full_copy = model.full_copy
         nics = []
         total_nics_to_schedule = NUM_NICS_PER_HOST * math.ceil(full_copy / NUM_NICS_PER_HOST)
@@ -101,9 +109,9 @@ def build_ddp_job(
 
     data_parallels = []
     for i in range(model.full_copy):
-        ring_nics = [full_copies[j][i] for j in range(len(full_copies))]
+        ring_nics = [full_copies[j][i] for j in range(actual_dp_dim)]
         flow_size = math.ceil(
-            math.ceil(BILLION * model.weights / model.full_copy) / data_parallelism_dim
+            math.ceil(BILLION * model.weights / model.full_copy) / actual_dp_dim
         )
         data_parallels.append(DataParallel(nics=ring_nics, flow_size=flow_size))
 

@@ -41,7 +41,7 @@ def gen_single_job_ddp_pairs(
     accelerator_name: str,
     model_name: str,
     n_tors: int,
-    data_parallelism_dim: int,
+    data_parallelism_dim: int | str,
     seed: int,
 ):
     random.seed(seed)
@@ -58,12 +58,15 @@ def gen_single_job_ddp_pairs(
         data_parallelism_dim=data_parallelism_dim,
     )
 
+    # Determine the ring size part of the path
+    ring_size_path_part = "different_ring_size" if data_parallelism_dim == "different" else f"ring_size_{data_parallelism_dim}"
+
     traffic_pairs_dir = Path(
         FLOODNS_ROOT,
         "traffic_pairs",
         f"seed_{seed}",
         "concurrent_jobs_1",
-        f"ring_size_{data_parallelism_dim}",
+        ring_size_path_part,  # Use the determined path part
         model_name,
     )
     save_jobs(traffic_pairs_dir, [job], n_tors)
@@ -74,10 +77,11 @@ def gen_ddp_pairs(
     accelerator_name: str,
     n_tors: int,
     num_concurrent_jobs: int,
-    data_parallelism_dim: int,
+    data_parallelism_dim: int | str,
     seed: int,
 ):
     assert num_concurrent_jobs > 1, "Number of concurrent jobs must be greater than 1"
+    assert isinstance(data_parallelism_dim, int), "gen_ddp_pairs expects integer data_parallelism_dim"
     if num_concurrent_jobs in {4, 5} and data_parallelism_dim == 8:
         print("data_parallelism_dim cannot be 8 for num_concurrent_jobs in {4,5}")
         return
@@ -135,7 +139,7 @@ def gen_ddp_pairs_different_sizes(
         "traffic_pairs",
         f"seed_{seed}",
         f"concurrent_jobs_{num_concurrent_jobs}",
-        "different_ring_sizes",
+        "different_ring_size",
     )
     save_jobs(traffic_pairs_dir, jobs, n_tors)
 

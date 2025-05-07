@@ -37,8 +37,7 @@ def generate_configurations():
     
     # Routing algorithms
     routing_algorithms = [
-        Routing.ecmp, 
-        Routing.ilp_solver, 
+        Routing.ecmp,  
         Routing.simulated_annealing, 
         Routing.edge_coloring, 
         Routing.mcvlc
@@ -57,14 +56,14 @@ def generate_configurations():
                     # Handle ring size based on job count
                     for ring_size in ring_sizes[num_jobs]:
                         if ring_size == "different":
-                            # Special case for different ring sizes
+                            # Special case for different ring size
                             if num_jobs == 1:
                                 # For single job with different models
                                 for model in models:
                                     configurations.append({
                                         "num_jobs": num_jobs,
                                         "n_core_failures": n_cores,
-                                        "ring_size": -1,
+                                        "ring_size": "different",
                                         "routing": routing.value,
                                         "seed": seed,
                                         "model": model
@@ -74,7 +73,7 @@ def generate_configurations():
                                 configurations.append({
                                     "num_jobs": num_jobs,
                                     "n_core_failures": n_cores,
-                                    "ring_size": -1,
+                                    "ring_size": "different",
                                     "routing": routing.value,
                                     "seed": seed,
                                     "model": None
@@ -132,7 +131,7 @@ def main():
     
     # Print first 10 configurations for brevity
     for i, config in enumerate(configurations[:10]):
-        ring_size_str = "different ring sizes" if config["ring_size"] == -1 else f"ring size {config['ring_size']}"
+        ring_size_str = "different ring size" if config["ring_size"] == "different" else f"ring size {config['ring_size']}"
         model_str = f", model: {config['model']}" if config["model"] else ""
         print(f"Config {i+1}: {config['num_jobs']} jobs, {config['n_core_failures']} core failures, {ring_size_str}, {config['routing']}, seed {config['seed']}{model_str}")
     

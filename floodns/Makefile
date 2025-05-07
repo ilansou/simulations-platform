@@ -130,7 +130,7 @@ simulate-jobs-different-ring-sizes:
 			$(foreach core_failure,$(num_core_failures),\
 				$(foreach alg,$(algorithms),\
 					echo "Starting simulation of $(alg)..."; \
-					java -jar floodns-basic-sim.jar ./runs/seed_$(seed)/concurrent_jobs_$(job)/$(core_failure)_core_failures/different_ring_sizes/$(alg); \
+					java -jar floodns-basic-sim.jar ./runs/seed_$(seed)/concurrent_jobs_$(job)/$(core_failure)_core_failures/different_ring_size/$(alg); \
 					echo "Finished simulation of $(alg)..."; \
 				)\
 			)\

@@ -20,7 +20,7 @@ RING_SIZES = [2, 4, 8]
 
 
 @app.command()
-def different_ring_sizes(num_concurrent_jobs: int, seed: int):
+def different_ring_size(num_concurrent_jobs: int, seed: int):
     assert num_concurrent_jobs > 1, "num_concurrent_jobs must be greater than 1"
     for num_core_failures in NUM_FAILED_CORES:
         experiment_folder = Path(
@@ -28,7 +28,7 @@ def different_ring_sizes(num_concurrent_jobs: int, seed: int):
             f"seed_{seed}",
             f"concurrent_jobs_{num_concurrent_jobs}",
             f"{num_core_failures}_core_failures",
-            "different_ring_sizes",
+            "different_ring_size",
         )
         compare_routing_strategies_helper(
             experiment_folder=experiment_folder,

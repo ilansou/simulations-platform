@@ -5,7 +5,11 @@ from pymongo import MongoClient
 from bson import ObjectId
 import os
 
-from floodns.external.simulation.main import local_run_single_job
+from floodns.external.simulation.main import (
+    local_run_single_job,
+    local_run_multiple_jobs,
+    local_run_multiple_jobs_different_ring_size
+)
 from floodns.external.schemas.routing import Routing
 from conf import FLOODNS_ROOT
 from db_client import experiments_collection
@@ -90,11 +94,62 @@ def update_experiment_status_in_db(simulation_id, new_state="Finished"):
     except Exception as e:
         st.error(f"Error updating experiment status in DB: {e}")
 
+def validate_simulation_params(num_jobs, num_cores, ring_size, routing, seed, model):
+    """
+    Validates the simulation parameters according to the requirements.
+    """
+    valid_num_jobs = [1, 2, 3, 4, 5]
+    valid_num_cores = [0, 1, 4, 8]
+    valid_ring_sizes = [2, 4, 8, "different"]
+    valid_routing_algorithms = ["ecmp", "ilp_solver", "simulated_annealing", "edge_coloring", "mcvlc"]
+    valid_seeds = [0, 42, 200, 404, 1234]
+    valid_models = ["BLOOM", "GPT_3", "LLAMA2_70B"]
+    
+    ring_size_param = int(ring_size) if ring_size != "different" else ring_size
+
+    if num_jobs not in valid_num_jobs:
+        return False, "Invalid number of jobs. Must be between 1 and 5."
+
+    if num_cores not in valid_num_cores:
+        return False, "Invalid number of core failures. Must be 0, 1, 4, or 8."
+
+    if ring_size_param not in valid_ring_sizes and ring_size != "different":
+        return False, "Invalid ring size. Must be 2, 4, 8, or 'different'."
+
+    if routing not in valid_routing_algorithms:
+        return False, "Invalid routing algorithm."
+
+    if seed not in valid_seeds:
+        return False, "Invalid seed. Must be 0, 42, 200, 404, or 1234."
+
+    if num_jobs == 1 and model not in valid_models:
+        return False, "Invalid model. Must be BLOOM, GPT_3, or LLAMA2_70B for a single job."
+
+    if num_jobs in [1, 2, 3] and ring_size_param not in [2, 8] and ring_size_param != "different":
+        return False, "Invalid ring size for 1-3 jobs. Must be 2, 8, or 'different'."
+
+    if num_jobs in [4, 5] and ring_size_param not in [2, 4] and ring_size_param != "different":
+        return False, "Invalid ring size for 4-5 jobs. Must be 2, 4, or 'different'."
+
+    return True, "Parameters are valid."
+
 def create_new_simulation(simulation_name, params):
     """
-    Creates a new simulation in the MongoDB collection, and then calls local_run_single_job.
+    Creates a new simulation in the MongoDB collection, and then calls the appropriate simulation function.
     """
     try:
+        num_jobs, num_cores, ring_size, routing, seed = params.split(",")
+        model = "BLOOM" if int(num_jobs) == 1 else None
+
+        # Validate parameters
+        is_valid, message = validate_simulation_params(
+            int(num_jobs), int(num_cores), ring_size, routing, int(seed), model
+        )
+
+        if not is_valid:
+            st.error(message)
+            return
+
         new_experiment = {
             "simulation_name": simulation_name,
             "params": params,
@@ -107,36 +162,36 @@ def create_new_simulation(simulation_name, params):
         st.success("New simulation created successfully!")
 
         try:
-            num_jobs, num_cores, ring_size, routing_str, seed = params.split(",")
-            model = "BLOOM"
-            routing_enum = Routing[routing_str]
+            routing_enum = Routing[routing]
 
-            # # Build a path to the folder with the simulation results
-            # run_dir = os.path.join(
-            #     FLOODNS_ROOT, "runs", f"seed_{seed}", "concurrent_jobs_1",
-            #     f"{num_cores}_core_failures", f"ring_size_{ring_size}",
-            #     model, routing_str, "logs_floodns"
-            # )
+            # Convert ring_size to int if it's not "different"
+            ring_size_param = int(ring_size) if ring_size != "different" else ring_size
+            
+            if int(num_jobs) == 1:
+                proc = local_run_single_job(
+                    seed=int(seed),
+                    n_core_failures=int(num_cores),
+                    ring_size=ring_size_param,
+                    model=model,
+                    alg=routing_enum
+                )
+            elif int(num_jobs) > 1 and ring_size == "different":
+                proc = local_run_multiple_jobs_different_ring_size(
+                    seed=int(seed),
+                    n_jobs=int(num_jobs),
+                    n_core_failures=int(num_cores),
+                    alg=routing_enum
+                )
+            else:
+                proc = local_run_multiple_jobs(
+                    seed=int(seed),
+                    n_jobs=int(num_jobs),
+                    ring_size=int(ring_size),
+                    n_core_failures=int(num_cores),
+                    alg=routing_enum
+                )
 
-            # Ensure the directory exists
-            # os.makedirs(run_dir, exist_ok=True)
-
-            # Run the simulation
-            proc = local_run_single_job(
-                seed=int(seed),
-                n_core_failures=int(num_cores),
-                ring_size=int(ring_size),
-                model=model,
-                alg=routing_enum
-            )
-
-            # Save the path to the results in the database
-            experiments_collection.update_one(
-                {"_id": result.inserted_id},
-                {"$set": {"run_dir": run_dir}}
-            )
-
-            st.write("local_run_single_job launched!")
+            st.write("Simulation launched!")
         except Exception as e:
             st.error(f"Error starting simulation: {e}")
 
@@ -160,11 +215,11 @@ def main():
             with st.form(key="new_simulation_form"):
                 st.write("Create New Simulation")
                 simulation_name = st.text_input("Simulation Name")
-                num_jobs = st.text_input("Num Jobs", value="1")
-                num_cores = st.selectbox("Num Cores (will be n_core_failures)", [1, 4, 8])
-                ring_size = st.selectbox("Ring Size", [2, 4, 8])
-                routing = st.selectbox("Routing Algorithm", ["ecmp", "ilp_solver", "simulated_annealing"])
-                seed = st.text_input("Seed", value="42")
+                num_jobs = st.selectbox("Num Jobs", [1, 2, 3, 4, 5])
+                num_cores = st.selectbox("Num Cores (n_core_failures)", [0, 1, 4, 8])
+                ring_size = st.selectbox("Ring Size", [2, 4, 8, "different"])
+                routing = st.selectbox("Routing Algorithm", ["ecmp", "ilp_solver", "simulated_annealing", "edge_coloring", "mcvlc"])
+                seed = st.selectbox("Seed", [0, 42, 200, 404, 1234])
                 params = f"{num_jobs},{num_cores},{ring_size},{routing},{seed}"
                 submit_button = st.form_submit_button(label="Create")
 
@@ -190,14 +245,14 @@ def main():
 
         for experiment in experiments:
             col1, col2, col3, col4, col5, col6 = st.columns([2, 2, 2, 1, 1, 2])
-            
+
             exp_id = experiment["_id"]
             exp_name = experiment["simulation_name"]
             exp_state = experiment["state"]
             run_dir = experiment.get("run_dir")
-            
+
             is_finished = False
-            
+
             # Check if status is running and need to check the file
             if exp_state == "Running" and run_dir:
                 is_finished = check_experiment_status(run_dir)
@@ -205,7 +260,7 @@ def main():
                     # Update DB if file indicates experiment is finished
                     update_experiment_status_in_db(exp_id)
                     st.rerun()  # Refresh to update UI
-            
+
             # Only show link if experiment is finished or manually indicate it's finished from file
             if exp_state == "Finished" or is_finished:
                 col1.markdown(
@@ -213,13 +268,13 @@ def main():
                     unsafe_allow_html=True)
             else:
                 col1.text(exp_name)  # Just show text without link
-                
+
             col2.text(experiment["date"])
             col3.text(experiment["params"])
-            
+
             status_icon = "✅" if exp_state == "Finished" else "⏳"
             col4.text(status_icon)
-            
+
             # Add check button for running experiments
             if exp_state == "Running":
                 check_button_key = f"check_status_{exp_id}"
@@ -231,7 +286,7 @@ def main():
                         st.warning(f"Experiment '{exp_name}' is still running.")
             else:
                 col5.write("")  # Empty placeholder to maintain column alignment
-            
+
             action = col6.selectbox(
                 'Select Action',
                 ['', 'Re-Run', 'Edit', 'Delete', 'Stop'],

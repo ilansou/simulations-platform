@@ -10,6 +10,7 @@ from floodns.external.simulation.main import local_run_single_job
 from floodns.external.schemas.routing import Routing
 from db_client import experiments_collection
 from llm.ingest import process_simulation_output
+from conf import FLOODNS_ROOT
 
 def fetch_experiment_details(simulation_id):
     try:
@@ -42,7 +43,7 @@ def re_run_experiment(simulation_id):
 
         params = experiment["params"]
         num_jobs, num_cores, ring_size, routing_str, seed = params.split(",")
-        model = "BLOOM"
+        model = "BLOOM" if int(num_jobs) == 1 else None
         routing_enum = Routing[routing_str]
 
         st.write("Let's launch local_run_single_job...")
@@ -54,12 +55,56 @@ def re_run_experiment(simulation_id):
             alg=routing_enum
         )
         st.write("local_run_single_job зcompleted. See logs in console Docker.")
+        
+        # Determine the run directory path based on parameters
+        ring_size_param = int(ring_size) if ring_size != "different" else ring_size
+        
+        # For single job
+        if int(num_jobs) == 1:
+            ring_size_path_part = "different_ring_size" if ring_size == "different" else f"ring_size_{ring_size_param}"
+            run_dir = os.path.join(
+                FLOODNS_ROOT,
+                "runs",
+                f"seed_{seed}",
+                "concurrent_jobs_1",
+                f"{num_cores}_core_failures",
+                ring_size_path_part,
+                model,
+                routing_str
+            )
+        # For multiple jobs with different ring sizes
+        elif int(num_jobs) > 1 and ring_size == "different":
+            run_dir = os.path.join(
+                FLOODNS_ROOT,
+                "runs",
+                f"seed_{seed}",
+                f"concurrent_jobs_{num_jobs}",
+                f"{num_cores}_core_failures",
+                "different_ring_size",
+                routing_str
+            )
+        # For multiple jobs with the same ring size
+        else:
+            run_dir = os.path.join(
+                FLOODNS_ROOT,
+                "runs",
+                f"seed_{seed}",
+                f"concurrent_jobs_{num_jobs}",
+                f"{num_cores}_core_failures",
+                f"ring_size_{ring_size_param}",
+                routing_str
+            )
+            
+        # Get the logs_floodns path specifically for analysis
+        logs_floodns_dir = os.path.join(run_dir, "logs_floodns")
+            
         experiments_collection.update_one(
             {"_id": ObjectId(simulation_id)},
             {
                 "$set": {
                     "state": "Finished",
                     "end_time": datetime.now().isoformat(),
+                    "run_dir": logs_floodns_dir if os.path.exists(logs_floodns_dir) else run_dir
                 }
             },
         )
@@ -210,6 +255,12 @@ def display_page(simulation_id):
                     "connection_info.csv"
                 ]
                 render_output_files(experiment["run_dir"], filenames)
+                
+                # Add button to run bandwidth analysis
+                if st.button("Run Bandwidth Analysis"):
+                    # Store the current experiment ID in query params and redirect
+                    st.query_params["experiment_id"] = simulation_id
+                    st.switch_page("routes/bandwidth_analysis.py")
                 
                 # Ingest data for LLM if not already done
                 if "files_ingested" not in st.session_state:

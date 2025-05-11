@@ -13,13 +13,43 @@ from floodns.external.schemas.oversubscription import HostOversubscription
 from floodns.external.schemas.routing import Routing
 from typer import Typer
 from conf import FLOODNS_ROOT
+import logging
+
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 app = Typer()
 
+def handle_pytorch_path_error():
+    """
+    Patch to handle the PyTorch __path__._path error by attempting to import PyTorch 
+    in a try-except block before running simulations.
+    """
+    try:
+        import torch
+        # Avoid the specific error by accessing the module directly
+        if hasattr(torch, 'classes') and hasattr(torch.classes, '__path__'):
+            # Replace the problematic attribute with a normal list if needed
+            if not isinstance(torch.classes.__path__, list):
+                torch.classes.__path__ = []
+        logger.info("PyTorch initialized successfully.")
+        return True
+    except Exception as e:
+        logger.warning(f"PyTorch initialization error (non-critical): {str(e)}")
+        return False
+    
 
 @app.command()
 # if number of jobs is 1
 def local_run_single_job(seed: int, n_core_failures: int, ring_size: int | str, model: str, alg: Routing):
+
+    # Try to handle PyTorch error before running simulation
+    handle_pytorch_path_error()
 
     print(
         f"=== local_run_single_job called with seed={seed}, n_core_failures={n_core_failures}, "
@@ -86,6 +116,9 @@ def local_run_multiple_jobs(
     assert n_jobs > 1
     assert isinstance(ring_size, int), "local_run_multiple_jobs expects an integer ring_size"
 
+    # Try to handle PyTorch error before running simulation
+    handle_pytorch_path_error()
+
     print(
         f"=== local_run_multiple_jobs called with seed={seed}, n_jobs={n_jobs}, "
         f"ring_size={ring_size}, alg={alg}, n_core_failures={n_core_failures}"
@@ -141,6 +174,9 @@ def local_run_multiple_jobs_different_ring_size(
     seed: int, n_jobs: int, n_core_failures: int, alg: Routing
 ) -> Popen:
     assert n_jobs > 1
+
+    # Try to handle PyTorch error before running simulation
+    handle_pytorch_path_error()
 
     print(
         f"=== local_run_multiple_jobs_different_ring_size called with seed={seed}, "

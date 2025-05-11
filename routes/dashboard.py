@@ -159,14 +159,17 @@ def create_new_simulation(simulation_name, params):
             "state": "Running",
         }
         result = experiments_collection.insert_one(new_experiment)
+        simulation_id = result.inserted_id
         st.success("New simulation created successfully!")
 
         try:
             routing_enum = Routing[routing]
+            
+            # Determine the appropriate run function and parameters
+            run_dir = None
+            ring_size_param = int(ring_size) if ring_size != "different" else ring_size
 
             # Convert ring_size to int if it's not "different"
-            ring_size_param = int(ring_size) if ring_size != "different" else ring_size
-            
             if int(num_jobs) == 1:
                 proc = local_run_single_job(
                     seed=int(seed),
@@ -175,6 +178,20 @@ def create_new_simulation(simulation_name, params):
                     model=model,
                     alg=routing_enum
                 )
+                
+                # Determine the run directory path for single job
+                ring_size_path_part = "different_ring_size" if ring_size == "different" else f"ring_size_{ring_size_param}"
+                run_dir = os.path.join(
+                    FLOODNS_ROOT,
+                    "runs",
+                    f"seed_{seed}",
+                    "concurrent_jobs_1",
+                    f"{num_cores}_core_failures",
+                    ring_size_path_part,
+                    model,
+                    routing
+                )
+                
             elif int(num_jobs) > 1 and ring_size == "different":
                 proc = local_run_multiple_jobs_different_ring_size(
                     seed=int(seed),
@@ -182,6 +199,18 @@ def create_new_simulation(simulation_name, params):
                     n_core_failures=int(num_cores),
                     alg=routing_enum
                 )
+                
+                # Determine the run directory path for multiple jobs with different ring sizes
+                run_dir = os.path.join(
+                    FLOODNS_ROOT,
+                    "runs",
+                    f"seed_{seed}",
+                    f"concurrent_jobs_{num_jobs}",
+                    f"{num_cores}_core_failures",
+                    "different_ring_size",
+                    routing
+                )
+                
             else:
                 proc = local_run_multiple_jobs(
                     seed=int(seed),
@@ -190,10 +219,40 @@ def create_new_simulation(simulation_name, params):
                     n_core_failures=int(num_cores),
                     alg=routing_enum
                 )
+                
+                # Determine the run directory path for multiple jobs with the same ring size
+                run_dir = os.path.join(
+                    FLOODNS_ROOT,
+                    "runs",
+                    f"seed_{seed}",
+                    f"concurrent_jobs_{num_jobs}",
+                    f"{num_cores}_core_failures",
+                    f"ring_size_{ring_size}",
+                    routing
+                )
+                
+            # Get the logs_floodns path specifically for analysis
+            if run_dir:
+                logs_floodns_dir = os.path.join(run_dir, "logs_floodns")
+                
+                # Update the experiment with the run_dir
+                experiments_collection.update_one(
+                    {"_id": simulation_id},
+                    {
+                        "$set": {
+                            "run_dir": logs_floodns_dir if os.path.exists(logs_floodns_dir) else run_dir
+                        }
+                    }
+                )
 
             st.write("Simulation launched!")
         except Exception as e:
             st.error(f"Error starting simulation: {e}")
+            # Update the experiment state to error
+            experiments_collection.update_one(
+                {"_id": simulation_id},
+                {"$set": {"state": "Error", "error_message": str(e)}}
+            )
 
         st.rerun()
     except Exception as e:

@@ -1,5 +1,6 @@
 from llm.generate import generate_response
 import streamlit as st
+from streamlit_js_eval import streamlit_js_eval
 import pandas as pd
 from datetime import datetime
 from pymongo import MongoClient
@@ -236,7 +237,9 @@ def re_run_experiment(simulation_id):
                 }
             }
         )
-
+        
+        streamlit_js_eval(js_expressions="parent.window.location.reload()")
+        
         # Run the simulation
         run_simulation(simulation_id, num_jobs, num_cores, ring_size, routing, seed, model)
 
@@ -329,15 +332,16 @@ def run_simulation(simulation_id, num_jobs, num_cores, ring_size, routing, seed,
 
         # Update the experiment with the run_dir
         experiments_collection.update_one(
-            {"_id": simulation_id},
+            {"_id": ObjectId(simulation_id)},
             {
                 "$set": {
-                    "run_dir": final_run_dir
+                    "run_dir": final_run_dir,
                 }
             }
         )
 
         st.write(f"Simulation launched! Run directory: {final_run_dir}")
+        
 
     except Exception as e:
         st.error(f"Error starting simulation: {e}")
@@ -354,37 +358,51 @@ def display_page(simulation_id):
     valid_routing_algorithms = ["ecmp", "ilp_solver", "simulated_annealing", "edge_coloring", "mcvlc"]
     valid_seeds = [0, 42, 200, 404, 1234]
     valid_models = ["BLOOM", "GPT_3", "LLAMA2_70B"]
-    
+
     tab1, tab2 = st.tabs(["Experiment Details", "Chat"])
 
     with tab1:
-        if "experiment" not in st.session_state or not st.session_state.experiment:
-            st.session_state.experiment = fetch_experiment_details(simulation_id)
-
-        if st.session_state.experiment:
-            experiment = st.session_state.experiment
+        experiment = None
+        if experiment not in st.session_state or not st.session_state.experiment:
+            experiment = fetch_experiment_details(simulation_id)
+            st.session_state.experiment = experiment
             
-            if experiment["state"] == "Running" and experiment.get("run_dir"):
-                if check_experiment_status(experiment["run_dir"]):
-                    experiments_collection.update_one(
-                        {"_id": ObjectId(simulation_id)},
-                        {"$set": {"state": "Finished", "end_time": datetime.now().isoformat()}}
-                    )
-                    st.session_state.files_ingested = None  # Reset to trigger ingestion
-                    st.rerun()
+            print("experiment:", experiment)
+
+            # if experiment["state"] == "Running" and experiment.get("run_dir"):
+            #     if check_experiment_status(experiment["run_dir"]):
+            #         experiments_collection.update_one(
+            #             {"_id": ObjectId(simulation_id)},
+            #             {"$set": {"state": "Finished", "end_time": datetime.now().isoformat()}}
+            #         )
+            #         st.session_state.files_ingested = None  # Reset to trigger ingestion
+            #         st.rerun()
 
             st.header(f"Simulation Name: {experiment['simulation_name']}")
             col1, col2, col3 = st.columns([1, 1, 1])
+
             with col1:
-                if experiment.get("state") != "Running":
-                    st.button("Re-run", on_click=lambda: re_run_experiment(simulation_id))
-                else:
-                    st.button("Re-run", disabled=True)
+                st.button("Re-run", on_click=lambda: re_run_experiment(simulation_id))
+                print("run_dir:", experiment.get("run_dir"))
+                print("state:", experiment.get("state"))
+                
             with col2:
                 st.button("Edit", on_click=lambda: st.session_state.update({"edit_experiment_modal": True}))
             with col3:
                 st.button("Delete", on_click=lambda: delete_experiment(simulation_id))
-                
+            if experiment.get("state") == "Running":
+                    print("run dir:", experiment["run_dir"])
+                    if st.button("🔄"): 
+                        if check_experiment_status(experiment.get("run_dir")):
+                            experiments_collection.update_one(
+                                {"_id": ObjectId(simulation_id)},
+                                {"$set": {"state": "Finished", "end_time": datetime.now().isoformat()}}
+                            )
+                            st.success("Experiment completed successfully!")
+                            st.rerun()
+                        else:
+                            st.warning("Experiment is still running.")
+
             # Handle deletion success
             if st.session_state.get("delete_success", False) and st.session_state.get("delete_simulation_id") == simulation_id:
                 st.success("Experiment deleted successfully!")
@@ -392,6 +410,7 @@ def display_page(simulation_id):
                 st.session_state.delete_simulation_id = None
                 st.markdown('<a href="/dashboard">Return to Dashboard</a>', unsafe_allow_html=True)
                 return
+
             st.subheader("Summary")
             st.write(f"Date: {experiment['date']}")
             st.write(f"Start time: {experiment['start_time']}")
@@ -471,11 +490,15 @@ def display_page(simulation_id):
             st.session_state.chat_history = load_chat_history(simulation_id)
 
         # Display chat history
-        for i, (question, answer) in enumerate(st.session_state.chat_history):
-            with st.chat_message("user"):
-                st.write(question)
-            with st.chat_message("assistant"):
-                st.write(answer)
+        chat_messages = st.container()
+        with chat_messages:
+            for i, (question, answer) in enumerate(st.session_state.chat_history):
+                with st.chat_message("user"):
+                    st.write(question)
+                with st.chat_message("assistant"):
+                    st.write(answer)
+
+        st.write("")  # Add space before input
 
         if "files_ingested" in st.session_state and st.session_state.files_ingested:
             # Get user question
@@ -513,6 +536,7 @@ def display_page(simulation_id):
                 if st.button("Process Files for Chat"):
                     with st.spinner("Processing simulation files..."):
                         st.session_state.files_ingested = ingest_experiment_data(st.session_state.experiment)
+
 
 def main():
     st.title("Experiment Details")

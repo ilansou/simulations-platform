@@ -1,4 +1,5 @@
 import streamlit as st
+from streamlit_js_eval import streamlit_js_eval
 import pandas as pd
 from datetime import datetime
 from pymongo import MongoClient
@@ -51,13 +52,17 @@ def handle_action_change(action, simulation_id):
         re_run_simulation(simulation_id)
     elif action == "Edit":
         st.query_params.simulation_id = simulation_id
-        st.session_state.show_edit_modal = True
+        if "edit_simulation_id" not in st.session_state:
+            st.session_state.edit_simulation_id = None
+        st.session_state.edit_simulation_modal = True
+        st.session_state.edit_simulation_id = simulation_id
     elif action == "Delete":
         experiments_collection.delete_one({"_id": ObjectId(simulation_id)})
         st.success("Simulation deleted successfully!")
         st.rerun()
     elif action == "Stop":
         stop_experiment(simulation_id)
+        
 
 def stop_experiment(simulation_id):
     """
@@ -180,7 +185,7 @@ def save_edited_simulation(simulation_id, simulation_name, params):
             }
         )
         st.success("Simulation updated successfully!")
-        st.session_state.show_edit_modal = False
+        st.session_state.edit_simulation_modal = False
         st.session_state.edit_simulation_id = None
         st.rerun()
     except Exception as e:
@@ -224,8 +229,8 @@ def create_new_simulation(simulation_name, params):
             routing,
             seed,
             model
-        )
-
+        )     
+        st.rerun()  
         return simulation_id
 
     except Exception as e:
@@ -326,6 +331,8 @@ def run_simulation(simulation_id, num_jobs, num_cores, ring_size, routing, seed,
                 }
             }
         )
+        
+        print(f"Simulation {simulation_id} is running in directory: {final_run_dir}")
 
         st.write(f"Simulation launched! Run directory: {final_run_dir}")
         
@@ -374,9 +381,11 @@ def re_run_simulation(simulation_id):
             }
         )
         
+        streamlit_js_eval(js_expressions="parent.window.location.reload()")
+        
         # Run the simulation
         run_simulation(simulation_id, num_jobs, num_cores, ring_size, routing, seed, model)
-
+        
     except Exception as e:
         st.error(f"Error re-running simulation: {e}")
 
@@ -387,11 +396,16 @@ def main():
     """
     st.title("Simulation Dashboard")
 
+    if "edit_simulation_id" not in st.session_state:
+            st.session_state.edit_simulation_id = None
+    if "edit_simulation_modal" not in st.session_state:
+        st.session_state.edit_simulation_modal = False
+        
     if st.button("New Simulation"):
         st.session_state.new_simulation_modal = True
         st.session_state.edit_simulation_id = None
         
-    if st.session_state.get("show_edit_modal", False) and st.session_state.get("edit_simulation_id"):
+    if st.session_state.get("edit_simulation_modal", False):
         experiment = fetch_experiment(st.session_state.edit_simulation_id)
         if experiment:
             placeholder = st.empty()
@@ -416,7 +430,7 @@ def main():
 
                 if close_button:
                     placeholder.empty()
-                    st.session_state.show_edit_modal = False
+                    st.session_state.edit_simulation_modal = False
                     st.session_state.edit_simulation_id = None
 
                 if submit_button:
@@ -469,13 +483,13 @@ def main():
 
             is_finished = False
 
-            # Check if status is running and need to check the file
-            if exp_state == "Running" and run_dir:
-                is_finished = check_experiment_status(run_dir)
-                if is_finished:
-                    # Update DB if file indicates experiment is finished
-                    update_experiment_status(exp_id)
-                    st.rerun()  # Refresh to update UI
+            # # Check if status is running and need to check the file
+            # if exp_state == "Running" and run_dir:
+            #     is_finished = check_experiment_status(run_dir)
+            #     if is_finished:
+            #         # Update DB if file indicates experiment is finished
+            #         update_experiment_status(exp_id)
+            #         st.rerun()  # Refresh to update UI
 
             # Only show link if experiment is finished or manually indicate it's finished from file
             if exp_state == "Finished" or is_finished:

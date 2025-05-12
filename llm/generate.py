@@ -8,6 +8,11 @@ from huggingface_hub import InferenceClient
 def generate_response(query):
     """Generate a response using DeepSeek model based on retrieved context"""
     try:
+        # Check if this is a request for step-by-step reasoning
+        if any(phrase in query.lower() for phrase in ["step by step", "explain your thinking", "show your work", "reasoning"]):
+            return generate_response_with_reasoning(query)
+        
+        # Standard response generation
         # Retrieve relevant documents with vector search
         context_docs = get_query_results(query, limit=3)
         
@@ -51,11 +56,47 @@ Answer:"""
         print(f"Error in RAG pipeline: {e}")
         return f"I had trouble searching through the simulation data. Please try again or ask an administrator to check the vector search configuration."
 
+
+def generate_response_with_reasoning(query):
+    """Generate a response with step-by-step reasoning"""
+    try:
+        from llm.think_step_by_step import think_step_by_step
+        
+        # Retrieve relevant documents with vector search
+        context_docs = get_query_results(query, limit=5)  # Get more context for reasoning
+        
+        if not context_docs:
+            return "I couldn't find any relevant information in the simulation data to answer your question."
+        
+        # Extract text and filenames for context
+        contexts = []
+        for doc in context_docs:
+            filename = doc.get("filename", "unknown file")
+            text = doc.get("text", "")
+            if text:
+                contexts.append(f"From {filename}:\n{text[:1500]}...")  # Include more context
+        
+        # Combine contexts
+        context_string = "\n\n".join(contexts)
+        
+        # Use think_step_by_step to generate reasoned response
+        response = think_step_by_step(query, None, context_string, use_api=not torch.cuda.is_available())
+        
+        # Format the response
+        formatted_response = f"## Step-by-Step Reasoning\n\n{response['reasoning']}\n\n## Final Answer\n\n{response['result']}"
+        
+        return formatted_response
+        
+    except Exception as e:
+        print(f"Error in reasoning pipeline: {e}")
+        return f"I had trouble applying step-by-step reasoning to your question. Error: {str(e)}"
+
+
 def generate_with_local_model(prompt):
     """Generate text using a local DeepSeek model if available"""
     try:
         # Load model and tokenizer
-        model_name = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
+        model_name = "deepseek-ai/DeepSeek-V3-0324"
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         model = AutoModelForCausalLM.from_pretrained(model_name)
         
@@ -100,7 +141,7 @@ def generate_with_api(prompt):
         # Generate response using the API
         response = client.text_generation(
             prompt=prompt,
-            model="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
+            model="deepseek-ai/DeepSeek-V3-0324",
             max_new_tokens=150,
             temperature=0.7,
             repetition_penalty=1.1

@@ -122,19 +122,19 @@ def preprocess_data(df_flow: pd.DataFrame, df_conn: pd.DataFrame, df_link: pd.Da
     logger.info("Preprocessing simulation data")
     
     # Make copies to avoid modifying the original dataframes
-    df_flow = df_flow.copy()
-    df_conn = df_conn.copy()
-    df_link = df_link.copy()
+    df_flow = df_flow.copy() if df_flow is not None else None
+    df_conn = df_conn.copy() if df_conn is not None else None
+    df_link = df_link.copy() if df_link is not None else None
     
     # Filter inactive links
-    if filter_inactive and not df_link.empty:
+    if filter_inactive and df_link is not None and not df_link.empty:
         inactive_count = len(df_link[df_link['avg_utilization'] == 0])
         if inactive_count > 0:
             logger.info(f"Filtering out {inactive_count} inactive links")
             df_link = df_link[df_link['avg_utilization'] > 0]
     
     # Filter for completed connections only
-    if completed_only and not df_conn.empty:
+    if completed_only and df_conn is not None and not df_conn.empty:
         # In the CSV, completed is marked as 'T' for true and 'F' for false
         completed_count = len(df_conn[df_conn['completed'] == 'T'])
         incomplete_count = len(df_conn) - completed_count
@@ -143,7 +143,7 @@ def preprocess_data(df_flow: pd.DataFrame, df_conn: pd.DataFrame, df_link: pd.Da
             df_conn = df_conn[df_conn['completed'] == 'T']
     
     # Unit conversions
-    if not df_flow.empty:
+    if df_flow is not None and not df_flow.empty:
         logger.info("Converting flow data units")
         # Convert nanoseconds to seconds for time values
         df_flow['duration'] = df_flow['duration'].astype(float) / 1e9
@@ -152,7 +152,7 @@ def preprocess_data(df_flow: pd.DataFrame, df_conn: pd.DataFrame, df_link: pd.Da
         # Convert raw units to Gbit
         df_flow['amount_sent'] = df_flow['amount_sent'].astype(float) / 1e9
     
-    if not df_conn.empty:
+    if df_conn is not None and not df_conn.empty:
         logger.info("Converting connection data units")
         # Convert nanoseconds to seconds for time values
         df_conn['duration'] = df_conn['duration'].astype(float) / 1e9
@@ -162,7 +162,7 @@ def preprocess_data(df_flow: pd.DataFrame, df_conn: pd.DataFrame, df_link: pd.Da
         df_conn['total_size'] = df_conn['total_size'].astype(float) / 1e9
         df_conn['amount_sent'] = df_conn['amount_sent'].astype(float) / 1e9
     
-    if not df_link.empty:
+    if df_link is not None and not df_link.empty:
         logger.info("Converting link data units")
         # Convert nanoseconds to seconds for time values
         df_link['duration'] = df_link['duration'].astype(float) / 1e9

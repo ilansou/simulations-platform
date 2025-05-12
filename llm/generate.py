@@ -97,18 +97,25 @@ def generate_with_local_model(prompt):
     try:
         # Load model and tokenizer
         model_name = "deepseek-ai/DeepSeek-V3-0324"
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-        model = AutoModelForCausalLM.from_pretrained(model_name)
+        tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
         
-        # Move model to GPU if available
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        model.to(device)
+        # Try to use GPU if available, otherwise use CPU
+        device_map = "auto" if torch.cuda.is_available() else {"": "cpu"}
+        dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+        
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            trust_remote_code=True,
+            device_map=device_map,
+            torch_dtype=dtype
+        )
         
         # Generate response
-        input_ids = tokenizer(prompt, return_tensors="pt").input_ids.to(device)
+        input_ids = tokenizer(prompt, return_tensors="pt").input_ids
         
-        # Use shorter sequence for CPU to avoid memory issues
-        max_length = 512 if device == "cpu" else 1024
+        # Move input to correct device
+        if torch.cuda.is_available():
+            input_ids = input_ids.to("cuda")
         
         # Generate with appropriate parameters
         with torch.no_grad():

@@ -556,6 +556,63 @@ def compare_routing_strategies(experiment_folder, strategies):
     logger.info(f"Comparison results written to {output_file}")
     return results
 
+def calculate_total_bandwidth(df_flow):
+    """
+    Calculate total bandwidth from flow data directly.
+    
+    Args:
+        df_flow (pd.DataFrame): Flow dataframe with data volumes
+        
+    Returns:
+        dict: Dictionary with bandwidth metrics
+    """
+    try:
+        # Get total data volume across all flows
+        if 'data_volume' in df_flow.columns:
+            total_volume = df_flow['data_volume'].sum()
+        elif 'volume' in df_flow.columns:
+            total_volume = df_flow['volume'].sum()
+        elif 'amount_sent' in df_flow.columns:  # This matches the actual column in FloodNS data
+            total_volume = df_flow['amount_sent'].sum()
+        else:
+            # Try to find any column that might contain volume data
+            numeric_cols = df_flow.select_dtypes(include=['number']).columns
+            for col in numeric_cols:
+                if any(term in col.lower() for term in ['volume', 'data', 'size', 'bytes', 'bits', 'sent', 'amount']):
+                    total_volume = df_flow[col].sum()
+                    break
+            else:
+                total_volume = 0
+                
+        # If we have time data, calculate bandwidth rate
+        if 'end_time' in df_flow.columns and 'start_time' in df_flow.columns:
+            # Calculate total time span
+            max_end = df_flow['end_time'].max()
+            min_start = df_flow['start_time'].min()
+            time_span = max_end - min_start
+            
+            # Avoid division by zero
+            if time_span > 0:
+                bandwidth_rate = total_volume / time_span
+            else:
+                bandwidth_rate = total_volume  # Assume instantaneous if time span is zero
+        else:
+            bandwidth_rate = None
+            
+        return {
+            "total_data_volume": total_volume,
+            "bandwidth_rate": bandwidth_rate,
+            "num_flows": len(df_flow),
+            "active_flows": df_flow[df_flow['active'] == True].shape[0] if 'active' in df_flow.columns else None
+        }
+    except Exception as e:
+        print(f"Error calculating bandwidth: {e}")
+        return {
+            "total_data_volume": None,
+            "bandwidth_rate": None,
+            "error": str(e)
+        }
+
 if __name__ == "__main__":
     import argparse
     

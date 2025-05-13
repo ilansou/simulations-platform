@@ -97,4 +97,8 @@ floodns/plots/
 
 # Ignore specific file types
 floodns/**/*.pkl
-floodns/**/*.mps
+floodns/**/*.mps__pycache__/
+
+# Ignore Python bytecode files everywhere
+__pycache__/
+*.pyc

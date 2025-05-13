@@ -1,8 +1,11 @@
 import os
+from dotenv import load_dotenv
 import streamlit as st
 from pymongo import MongoClient
 from pymongo.errors import ServerSelectionTimeoutError
 
+# Load environment variables from .env file
+load_dotenv()
 
 @st.cache_resource
 def get_db_client():
@@ -28,14 +31,14 @@ def get_db_client():
         st.error(f"Unexpected error while connecting to MongoDB: {e}")
         return None
 
-
 # Create the client
 db_client = get_db_client()
 
 if db_client:
-    # Create/get the database and collection
     db = db_client["experiment_db"]
     experiments_collection = db["experiments"]
+    chat_collection = db["chat"]  
 else:
     st.error("Could not initialize database connection!")
     experiments_collection = None
+    chat_collection = None

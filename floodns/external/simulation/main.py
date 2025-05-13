@@ -2,29 +2,61 @@ import os
 from subprocess import Popen, run, PIPE
 from pathlib import Path
 from floodns.external.runs_generator.main import create_run_dir, create_run_dir_single_job
+from floodns.external.jobs_generator.main import (
+    gen_ddp_pairs,
+    gen_single_job_ddp_pairs,
+    gen_ddp_pairs_different_sizes,
+)
+from floodns.external.schemas.accelerators import Accelerators
 from floodns.external.schemas.distributed_training import DistributedTraining
 from floodns.external.schemas.oversubscription import HostOversubscription
 from floodns.external.schemas.routing import Routing
 from typer import Typer
 from conf import FLOODNS_ROOT
+import logging
+
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 app = Typer()
 
+def handle_pytorch_path_error():
+    """
+    Patch to handle the PyTorch __path__._path error by attempting to import PyTorch 
+    in a try-except block before running simulations.
+    """
+    try:
+        import torch
+        # Avoid the specific error by accessing the module directly
+        if hasattr(torch, 'classes') and hasattr(torch.classes, '__path__'):
+            # Replace the problematic attribute with a normal list if needed
+            if not isinstance(torch.classes.__path__, list):
+                torch.classes.__path__ = []
+        logger.info("PyTorch initialized successfully.")
+        return True
+    except Exception as e:
+        logger.warning(f"PyTorch initialization error (non-critical): {str(e)}")
+        return False
+    
+
 @app.command()
-def local_run_single_job(
-    seed: int, n_core_failures: int, ring_size: int, model: str, alg: Routing
-):
-    print(f"=== local_run_single_job called with seed={seed}, n_core_failures={n_core_failures}, "
-          f"ring_size={ring_size}, model={model}, alg={alg}")
-    # Переходим в корень
-    os.chdir(FLOODNS_ROOT)
+# if number of jobs is 1
+def local_run_single_job(seed: int, n_core_failures: int, ring_size: int | str, model: str, alg: Routing):
 
-    run_dir = Path(FLOODNS_ROOT, "runs", f"seed_{seed}", f"concurrent_jobs_1",
-                   f"{n_core_failures}_core_failures", f"ring_size_{ring_size}",
-                   model, alg.value)
-    os.makedirs(run_dir, exist_ok=True)
+    # Try to handle PyTorch error before running simulation
+    handle_pytorch_path_error()
 
-    # Генерируем нужные файлы
+    print(
+        f"=== local_run_single_job called with seed={seed}, n_core_failures={n_core_failures}, "
+        f"ring_size={ring_size}, model={model}, alg={alg}"
+    )
+
+    # Generate the necessary files
     create_run_dir_single_job(
         num_tors=64,
         core_failures=n_core_failures,
@@ -32,6 +64,29 @@ def local_run_single_job(
         model_name=model,
         seed=seed,
     )
+    gen_single_job_ddp_pairs(
+        accelerator_name=Accelerators.A100.name,
+        model_name=model,
+        n_tors=64,
+        data_parallelism_dim=ring_size,
+        seed=seed,
+    )
+
+    # Determine the ring size part of the path
+    ring_size_path_part = "different_ring_size" if ring_size == "different" else f"ring_size_{ring_size}"
+
+    run_dir = Path(
+        FLOODNS_ROOT,
+        "runs",
+        f"seed_{seed}",
+        "concurrent_jobs_1",
+        f"{n_core_failures}_core_failures",
+        ring_size_path_part,  # Use the determined path part
+        model,
+        alg.value,
+    )
+
+    print(f"Run directory: {run_dir}")
 
     jar_path = Path(FLOODNS_ROOT, "floodns-basic-sim.jar")
     if not jar_path.exists():
@@ -39,9 +94,8 @@ def local_run_single_job(
     else:
         print(f"JAR file found at {jar_path}")
 
-    # Запускаем java -jar
-    proc = Popen(["java", "-jar", str(jar_path), str(run_dir)],
-                 stdout=PIPE, stderr=PIPE)
+    # Run java -jar
+    proc = Popen(["java", "-jar", str(jar_path), str(run_dir)], stdout=PIPE, stderr=PIPE)
     stdout_data, stderr_data = proc.communicate()
 
     print("=== local_run_single_job STDOUT ===")
@@ -50,18 +104,42 @@ def local_run_single_job(
     print(stderr_data.decode("utf-8", errors="replace"))
     print(f"=== local_run_single_job return code: {proc.returncode}")
 
-    # Возвращаем код процесса (или можно вернуть сам proc)
+    # Return the process code (or you can return the proc itself)
     return proc
 
 
 @app.command()
+# if number of jobs > 1 but ring size is 2, 4, 8
 def local_run_multiple_jobs(
-    seed: int, n_jobs: int, ring_size: int, alg: Routing, n_core_failures: int
+    seed: int, n_jobs: int, ring_size: int | str, alg: Routing, n_core_failures: int
 ) -> Popen:
     assert n_jobs > 1
-    os.chdir(FLOODNS_ROOT)
+    assert isinstance(ring_size, int), "local_run_multiple_jobs expects an integer ring_size"
 
-    os.makedirs(Path(FLOODNS_ROOT, "runs"), exist_ok=True)
+    # Try to handle PyTorch error before running simulation
+    handle_pytorch_path_error()
+
+    print(
+        f"=== local_run_multiple_jobs called with seed={seed}, n_jobs={n_jobs}, "
+        f"ring_size={ring_size}, alg={alg}, n_core_failures={n_core_failures}"
+    )
+
+    create_run_dir(
+        num_tors=64,
+        num_jobs=n_jobs,
+        core_failures=n_core_failures,
+        ring_size=ring_size,
+        routing=alg,
+        seed=seed,
+    )
+    gen_ddp_pairs(
+        accelerator_name=Accelerators.A100.name,
+        n_tors=64,
+        num_concurrent_jobs=n_jobs,
+        data_parallelism_dim=ring_size,
+        seed=seed,
+    )
+
     run_dir = Path(
         FLOODNS_ROOT,
         "runs",
@@ -71,84 +149,81 @@ def local_run_multiple_jobs(
         f"ring_size_{ring_size}",
         alg.value,
     )
-    os.makedirs(os.path.dirname(run_dir), exist_ok=True)
-    create_run_dir(
-            num_tors=64,
-            num_jobs=n_jobs,
-            core_failures=n_core_failures,
-            ring_size=ring_size,
-            routing=alg,
-            seed=seed,
-        )
+
     jar_path = Path(FLOODNS_ROOT, "floodns-basic-sim.jar")
-    proc = Popen(["java", "-jar", jar_path, run_dir], stdout=PIPE, stderr=PIPE)
+    if not jar_path.exists():
+        print(f"!!! JAR file not found at {jar_path}")
+    else:
+        print(f"JAR file found at {jar_path}")
+
+    # Run java -jar and wait for it to complete
+    proc = Popen(["java", "-jar", str(jar_path), str(run_dir)], stdout=PIPE, stderr=PIPE)
+    stdout_data, stderr_data = proc.communicate()
+
+    print("=== local_run_multiple_jobs STDOUT ===")
+    print(stdout_data.decode("utf-8", errors="replace"))
+    print("=== local_run_multiple_jobs STDERR ===")
+    print(stderr_data.decode("utf-8", errors="replace"))
+    print(f"=== local_run_multiple_jobs return code: {proc.returncode}")
+
     return proc
 
 
 @app.command()
-def local_run_multiple_jobs_different_ring_sizes(
+def local_run_multiple_jobs_different_ring_size(
     seed: int, n_jobs: int, n_core_failures: int, alg: Routing
 ) -> Popen:
     assert n_jobs > 1
-    os.chdir(FLOODNS_ROOT)
 
-    os.makedirs(Path(FLOODNS_ROOT, "runs"), exist_ok=True)
-    run_dir = Path(
-        FLOODNS_ROOT,
-        "runs",
-        f"seed_{seed}",
-        f"concurrent_jobs_{n_jobs}",
-        f"{n_core_failures}_core_failures",
-        f"different_ring_sizes",
-        alg.value,
+    # Try to handle PyTorch error before running simulation
+    handle_pytorch_path_error()
+
+    print(
+        f"=== local_run_multiple_jobs_different_ring_size called with seed={seed}, "
+        f"n_jobs={n_jobs}, n_core_failures={n_core_failures}, alg={alg}"
     )
-    os.makedirs(os.path.dirname(run_dir), exist_ok=True)
+
     create_run_dir(
         num_tors=64,
         num_jobs=n_jobs,
         core_failures=n_core_failures,
         routing=alg,
         seed=seed,
+        ring_size="different"
     )
-    jar_path = Path(FLOODNS_ROOT, "floodns-basic-sim.jar")
-    proc = Popen(["java", "-jar", jar_path, run_dir], stdout=PIPE, stderr=PIPE)
-    return proc
-
-
-@app.command()
-def local_run(
-    seed: int, n_jobs: int, n_core_failures: int, ring_size: int, model: str, alg: Routing
-) -> Popen:
-    # single job
-    # java -jar floodns-basic-sim.jar ./runs/seed_$(seed)/concurrent_jobs_1/$(core_failure)_core_failures/ring_size_$(ring_size)/$(model)/$(alg)
-    # different ring sizes
-    # java -jar floodns-basic-sim.jar ./runs/seed_$(seed)/concurrent_jobs_$(job)/$(core_failure)_core_failures/different_ring_sizes/$(alg)
-    """
-    :param seed: seed for the run
-    :param n_jobs: number of concurrent jobs
-    :param n_core_failures: number of core failures
-    :param ring_size: ring size
-    :param model: model to run (BLOOM, GPT_3, LLAMA2_70B)
-    :param alg: routing algorithm (ecmp, mcvlc, edge_coloring, simulated_annealing, ilp_solver)
-    """
+    gen_ddp_pairs_different_sizes(
+        accelerator_name=Accelerators.A100.name,
+        n_tors=64,
+        num_concurrent_jobs=n_jobs,
+        seed=seed,
+    )
+    # Define the run_dir properly
     run_dir = Path(
         FLOODNS_ROOT,
         "runs",
         f"seed_{seed}",
         f"concurrent_jobs_{n_jobs}",
         f"{n_core_failures}_core_failures",
+        "different_ring_size",
+        alg.value,
     )
-    if not os.path.exists(run_dir):
-        create_run_dir(
-            num_tors=num_tors,
-            num_jobs=num_jobs,
-            core_failures=n_cores,
-            ring_size=ring_size,
-            routing=routing,
-            seed=seed,
-        )
+
     jar_path = Path(FLOODNS_ROOT, "floodns-basic-sim.jar")
-    proc = Popen(["java", "-jar", jar_path, run_dir])
+    if not jar_path.exists():
+        print(f"!!! JAR file not found at {jar_path}")
+    else:
+        print(f"JAR file found at {jar_path}")
+
+    # Run java -jar and wait for it to complete
+    proc = Popen(["java", "-jar", str(jar_path), str(run_dir)], stdout=PIPE, stderr=PIPE)
+    stdout_data, stderr_data = proc.communicate()
+
+    print("=== local_run_multiple_jobs_different_ring_size STDOUT ===")
+    print(stdout_data.decode("utf-8", errors="replace"))
+    print("=== local_run_multiple_jobs_different_ring_size STDERR ===")
+    print(stderr_data.decode("utf-8", errors="replace"))
+    print(f"=== local_run_multiple_jobs_different_ring_size return code: {proc.returncode}")
+
     return proc
 
 

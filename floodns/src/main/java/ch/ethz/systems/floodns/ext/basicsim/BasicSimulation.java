@@ -103,6 +103,10 @@ public class BasicSimulation {
             // Initialize simulator
             Simulator simulator = new Simulator();
             FileLoggerFactory loggerFactory = new FileLoggerFactory(simulator, logFolderPath);
+
+            String absLogPath = new File(logFolderPath).getAbsolutePath();
+            System.out.println("Logs are stored in: " + absLogPath);
+            
             Aftermath aftermath = new SimpleMmfAllocator(simulator, network);
             simulator.setup(network, aftermath, loggerFactory);
 

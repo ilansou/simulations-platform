@@ -315,7 +315,6 @@ public class Simulator {
         ));
 
         // Flush all logs
-
         // Log flush start
         long logFlushStartTime = System.currentTimeMillis();
         logger.info("WRITING LOGS");

@@ -16,7 +16,7 @@ def create_run_dir(
     core_failures: int,
     routing: Routing,
     seed: int,
-    ring_size: int | None = None,
+    ring_size: int | str,
 ):
     """
     Create a directory for a run with the given parameters
@@ -42,9 +42,9 @@ def create_run_dir(
     )
     print("job_dir", job_dir)
     print ("traffic_pairs_dir", traffic_pairs_dir)
-    if ring_size is None:
-        job_dir = Path(job_dir, "different_ring_sizes")
-        traffic_pairs_dir = Path(traffic_pairs_dir, "different_ring_sizes")
+    if ring_size == "different":
+        job_dir = Path(job_dir, "different_ring_size")
+        traffic_pairs_dir = Path(traffic_pairs_dir, "different_ring_size")
     else:
         job_dir = Path(job_dir, f"ring_size_{ring_size}")
         traffic_pairs_dir = Path(traffic_pairs_dir, f"ring_size_{ring_size}")
@@ -59,12 +59,13 @@ def create_run_dir(
         core_failures=core_failures,
         traffic_pairs_dir=traffic_pairs_dir,
         num_tors=num_tors,
+        seed=seed,
     )
 
 
 @app.command()
 def create_run_dir_single_job(
-    num_tors: int, core_failures: int, ring_size: int, model_name: str, seed: int
+    num_tors: int, core_failures: int, ring_size: int | str, model_name: str, seed: int
 ):
     """
     Create a directory for a run with the given parameters
@@ -74,6 +75,9 @@ def create_run_dir_single_job(
     :param model_name: LLM model
     :param seed: Seed for random
     """
+    # Determine the ring size part of the path
+    ring_size_path_part = "different_ring_size" if ring_size == "different" else f"ring_size_{ring_size}"
+
     for routing in Routing:
         job_dir = Path(
             FLOODNS_ROOT,
@@ -81,7 +85,7 @@ def create_run_dir_single_job(
             f"seed_{seed}",
             "concurrent_jobs_1",
             f"{core_failures}_core_failures",
-            f"ring_size_{ring_size}",
+            ring_size_path_part,  # Use the determined path part
             model_name,
             routing.value,
         )
@@ -92,15 +96,19 @@ def create_run_dir_single_job(
             "traffic_pairs",
             f"seed_{seed}",
             "concurrent_jobs_1",
-            f"ring_size_{ring_size}",
+            ring_size_path_part, # Use the determined path part
             model_name,
         )
+        if not os.path.exists(traffic_pairs_dir):
+            makedirs(traffic_pairs_dir, exist_ok=True)
+            
         create_files(
             runs_dir=job_dir,
             routing=routing,
             core_failures=core_failures,
             traffic_pairs_dir=traffic_pairs_dir,
             num_tors=num_tors,
+            seed=seed,
         )
 
 
@@ -130,7 +138,7 @@ def create_concurrent_jobs_dir(num_tors: int, num_concurrent_jobs: int, seed: in
 
 
 @app.command()
-def create_concurrent_jobs_different_ring_sizes(num_tors: int, num_concurrent_jobs: int, seed: int):
+def create_concurrent_jobs_different_ring_size(num_tors: int, num_concurrent_jobs: int, seed: int):
     for routing in Routing:
         for core_failures in NUM_CORE_FAILURES:
             create_run_dir(
@@ -139,6 +147,7 @@ def create_concurrent_jobs_different_ring_sizes(num_tors: int, num_concurrent_jo
                 core_failures=core_failures,
                 routing=routing,
                 seed=seed,
+                ring_size="different"
             )
 
 
@@ -148,12 +157,14 @@ def create_files(
     core_failures: int,
     traffic_pairs_dir: str,
     num_tors: int,
+    seed: int,
 ):
     create_config_floodns(
         root=runs_dir,
         routing=routing,
         core_failures=core_failures,
         traffic_pairs_dir=traffic_pairs_dir,
+        seed=seed,
     )
     create_2_layer_topology(root=runs_dir, num_tors=num_tors)
     if os.path.exists(Path(runs_dir, "schedule.csv")):
@@ -167,11 +178,12 @@ def create_config_floodns(
     routing: Routing,
     core_failures: int,
     traffic_pairs_dir: str,
+    seed: int,
 ):
     config_file = Path(root, "config.properties")
     with open(config_file, "w") as f:
         f.write("simulation_end_time_ns=604800000000000\n")
-        f.write("simulation_seed=1234\n")
+        f.write(f"simulation_seed={seed}\n")
         f.write("filename_topology=topology.properties\n")
         f.write("filename_schedule=schedule.csv\n")
         f.write(f"job_base_dir_schedule={traffic_pairs_dir}\n")

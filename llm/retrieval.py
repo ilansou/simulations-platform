@@ -67,8 +67,26 @@ def get_query_results(query, limit=5):
         return []
     
     try:
+        # Enhance query for better retrieval on basic statistics questions
+        enhanced_query = query
+        # For node-related queries, add terms to improve matching
+        if "node" in query.lower() or "nodes" in query.lower():
+            enhanced_query = f"{query} node_info.csv number of nodes count"
+        # For bandwidth-related queries
+        elif "bandwidth" in query.lower():
+            enhanced_query = f"{query} flow_bandwidth.csv connection_bandwidth.csv average bandwidth"
+        # For link-related queries
+        elif "link" in query.lower() or "connection" in query.lower():
+            enhanced_query = f"{query} link_utilization.csv connection_info.csv"
+        # For general simulation questions
+        elif "simulation" in query.lower():
+            enhanced_query = f"{query} node_info.csv flow_info.csv link_utilization.csv"
+            
+        print(f"Original query: {query}")
+        print(f"Enhanced query: {enhanced_query}")
+            
         # Generate embedding for the user query
-        query_embedding = get_embedding(query)
+        query_embedding = get_embedding(enhanced_query)
         
         # Define the vector search pipeline
         vector_search_stage = {
@@ -94,6 +112,11 @@ def get_query_results(query, limit=5):
         
         # Execute the search
         results = list(chat_collection.aggregate(pipeline))
+        
+        # Log the number of results and their filenames
+        filenames = [doc.get("filename", "unknown") for doc in results]
+        print(f"Retrieved {len(results)} results from: {', '.join(filenames)}")
+        
         return results
     
     except Exception as e:

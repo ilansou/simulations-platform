@@ -3,6 +3,15 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 from llm.retrieval import get_query_results, setup_vector_search_index
 from huggingface_hub import InferenceClient
+from dotenv import load_dotenv
+import pandas as pd
+import io
+import re
+
+load_dotenv()
+
+# Change to a small model that's definitely available on the free tier
+MODEL_NAME = "gpt2"
 
 
 def generate_response(query):
@@ -21,11 +30,13 @@ def generate_response(query):
         
         # Extract text and filenames for context
         contexts = []
+        filenames = []
         for doc in context_docs:
             filename = doc.get("filename", "unknown file")
             text = doc.get("text", "")
             if text:
                 contexts.append(f"From {filename}:\n{text[:1000]}...")
+                filenames.append(filename)
         
         # Combine contexts
         context_string = "\n\n".join(contexts)
@@ -33,7 +44,9 @@ def generate_response(query):
         # Build the RAG prompt
         prompt = f"""You are an AI assistant analyzing network simulation data. 
 Use only the following context to answer the user's question.
-If you don't have enough information in the context, say you don't know.
+Be specific and extract numbers, statistics and factual information from the provided data.
+If the data contains CSV content, analyze the structure and count unique entries if needed.
+For node counts, count unique node IDs. For bandwidth questions, look for numerical values.
 
 Context:
 {context_string}
@@ -42,16 +55,32 @@ User Question: {query}
 Answer:"""
         
         try:
-            # Try inference with local model if available
-            if torch.cuda.is_available():
-                return generate_with_local_model(prompt)
-            else:
-                # Otherwise, use Hugging Face Inference API
-                return generate_with_api(prompt)
+            # Always use the Hugging Face Inference API instead of trying local model
+            response = generate_with_api(prompt, context_docs, query)
+                
+            # Add reasoning block after the main answer
+            context_summary = "\n".join([f"- {filename}" for filename in filenames])
+            context_preview = "\n".join([doc.get("text", "")[:100] + "..." for doc in context_docs])
+            
+            reasoning = f"""
+
+--- Reasoning ---
+1. Retrieved documents:
+{context_summary}
+
+2. Used context:
+{context_preview}
+
+3. Based on this information, the answer above was generated.
+"""
+            
+            # Return final response with reasoning
+            return f"{response}{reasoning}"
+                
         except Exception as e:
             error_msg = str(e)
             print(f"Error in generate_response: {error_msg}")
-            return f"Sorry, I encountered an error while analyzing the simulation data. Please try again later."
+            return fallback_parser(query, context_docs)
     except Exception as e:
         print(f"Error in RAG pipeline: {e}")
         return f"I had trouble searching through the simulation data. Please try again or ask an administrator to check the vector search configuration."
@@ -79,8 +108,8 @@ def generate_response_with_reasoning(query):
         # Combine contexts
         context_string = "\n\n".join(contexts)
         
-        # Use think_step_by_step to generate reasoned response
-        response = think_step_by_step(query, None, context_string, use_api=not torch.cuda.is_available())
+        # Always use API for think_step_by_step
+        response = think_step_by_step(query, None, context_string, use_api=True)
         
         # Format the response
         formatted_response = f"## Step-by-Step Reasoning\n\n{response['reasoning']}\n\n## Final Answer\n\n{response['result']}"
@@ -96,7 +125,7 @@ def generate_with_local_model(prompt):
     """Generate text using a local DeepSeek model if available"""
     try:
         # Load model and tokenizer
-        model_name = "deepseek-ai/DeepSeek-V3-0324"
+        model_name = MODEL_NAME
         tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
         
         # Try to use GPU if available, otherwise use CPU
@@ -138,19 +167,23 @@ def generate_with_local_model(prompt):
         print(f"Local model inference error: {e}")
         return generate_with_api(prompt)
 
-def generate_with_api(prompt):
+def generate_with_api(prompt, context_docs=None, query=None):
     """Generate text using the Hugging Face Inference API"""
     try:        
         # Initialize the client
         hf_token = os.getenv("HF_TOKEN")
         if not hf_token:
-            raise ValueError("Hugging Face token not found. Please set the HF_TOKEN environment variable.")
-        client = InferenceClient(token=hf_token)
+            print("No Hugging Face token found. Trying without authentication...")
+            client = InferenceClient()
+        else:
+            client = InferenceClient(token=hf_token)
+        
+        print(f"Sending request to model: {MODEL_NAME}")
         
         # Generate response using the API
         response = client.text_generation(
             prompt=prompt,
-            model="deepseek-ai/DeepSeek-V3-0324",
+            model=MODEL_NAME,
             max_new_tokens=150,
             temperature=0.7,
             repetition_penalty=1.1
@@ -162,4 +195,72 @@ def generate_with_api(prompt):
         
     except Exception as e:
         print(f"API inference error: {e}")
+        
+        # Add debugging information to help troubleshoot
+        print(f"Attempted to use model: {MODEL_NAME}")
+        print("Try running without HF_TOKEN by setting it to an empty string in .env")
+        
+        # Use the fallback parser if context and query are available
+        if context_docs and query:
+            print("Using fallback parser to extract information directly from documents")
+            return fallback_parser(query, context_docs)
+        
+        # Manual fallback - extract information from retrieved documents to provide a basic answer
         return "I'm sorry, I couldn't access the language model service. Please try again later."
+
+def fallback_parser(query, context_docs):
+    """Directly parse the simulation data when the API is unavailable"""
+    query_lower = query.lower()
+    
+    # Extract information based on query type
+    if "node" in query_lower and ("count" in query_lower or "how many" in query_lower):
+        # Count unique nodes in node_info.csv
+        for doc in context_docs:
+            if doc.get("filename") == "node_info.csv":
+                text = doc.get("text", "")
+                if text:
+                    try:
+                        # Parse CSV content
+                        df = pd.read_csv(io.StringIO(text), header=None)
+                        # First column typically contains node IDs
+                        node_count = df[0].nunique()
+                        return f"Based on the node_info.csv file, there are {node_count} unique nodes in the simulation."
+                    except Exception as e:
+                        print(f"Error parsing node_info.csv: {e}")
+                        # Try a basic line count approach
+                        lines = text.strip().split('\n')
+                        return f"Based on the node_info.csv file, there appear to be approximately {len(lines)} nodes in the simulation."
+                        
+    elif "bandwidth" in query_lower and "average" in query_lower:
+        # Calculate average bandwidth
+        for doc in context_docs:
+            if "bandwidth" in doc.get("filename", "").lower():
+                text = doc.get("text", "")
+                if text:
+                    try:
+                        # Try to parse the CSV
+                        df = pd.read_csv(io.StringIO(text), header=None)
+                        # Look for columns that might contain bandwidth values
+                        # Typically the last column in bandwidth files
+                        last_col = df.columns[-1]
+                        # Convert to numeric, ignoring errors
+                        bandwidth_values = pd.to_numeric(df[last_col], errors='coerce')
+                        # Calculate average of non-NaN values
+                        avg_bandwidth = bandwidth_values.mean()
+                        return f"Based on {doc.get('filename')}, the average bandwidth is approximately {avg_bandwidth:.2f}."
+                    except Exception as e:
+                        print(f"Error parsing bandwidth data: {e}")
+                        # Try a simpler approach with regex
+                        numbers = re.findall(r'[\d.]+', text)
+                        if numbers:
+                            try:
+                                values = [float(num) for num in numbers if float(num) > 0]
+                                if values:
+                                    avg = sum(values) / len(values)
+                                    return f"Based on {doc.get('filename')}, the average bandwidth is approximately {avg:.2f}."
+                            except:
+                                pass
+    
+    # General fallback for other queries
+    filenames = [doc.get("filename", "unknown") for doc in context_docs]
+    return f"I found relevant information in {', '.join(filenames)}, but couldn't process it automatically. The API service is currently unavailable."

@@ -143,6 +143,8 @@ def generate_with_api(prompt):
     try:        
         # Initialize the client
         hf_token = os.getenv("HF_TOKEN")
+        if not hf_token:
+            raise ValueError("Hugging Face token not found. Please set the HF_TOKEN environment variable.")
         client = InferenceClient(token=hf_token)
         
         # Generate response using the API

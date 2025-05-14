@@ -11,12 +11,25 @@ import re
 load_dotenv()
 
 # Change to a small model that's definitely available on the free tier
-MODEL_NAME = "gpt2"
+model_name = os.getenv("MODEL_NAME")
 
 
-def generate_response(query):
+def generate_response(query, run_dir=None):
     """Generate a response using DeepSeek model based on retrieved context"""
     try:
+        # First check if this is a bandwidth analysis question
+        if is_bandwidth_query(query):
+            try:
+                # Import here to avoid circular imports
+                from llm.bandwidth_analysis import analyze_bandwidth_for_chat
+                
+                # Only use bandwidth analysis if we have a run directory
+                if run_dir:
+                    return analyze_bandwidth_for_chat(run_dir=run_dir, query=query)
+            except Exception as e:
+                print(f"Error in bandwidth analysis: {e}")
+                # Continue with standard response generation if bandwidth analysis fails
+        
         # Check if this is a request for step-by-step reasoning
         if any(phrase in query.lower() for phrase in ["step by step", "explain your thinking", "show your work", "reasoning"]):
             return generate_response_with_reasoning(query)
@@ -86,6 +99,30 @@ Answer:"""
         return f"I had trouble searching through the simulation data. Please try again or ask an administrator to check the vector search configuration."
 
 
+def is_bandwidth_query(query):
+    """
+    Detect if the query is asking about bandwidth analysis.
+    
+    This function checks if the query contains keywords related to bandwidth,
+    specifically with the flow_bandwidth.csv file.
+    """
+    query_lower = query.lower()
+    
+    # Check for bandwidth keywords in combination with file references
+    bandwidth_keywords = ['bandwidth', 'throughput', 'speed', 'data rate']
+    file_keywords = ['flow', 'flow_bandwidth', 'flow bandwidth', 'flow_bandwidth.csv']
+    
+    bandwidth_match = any(kw in query_lower for kw in bandwidth_keywords)
+    file_match = any(kw in query_lower for kw in file_keywords)
+    
+    # Check if the query is asking about averages, statistics, etc.
+    stat_keywords = ['average', 'avg', 'mean', 'statistics', 'calculate', 'median', 'min', 'max']
+    stat_match = any(kw in query_lower for kw in stat_keywords)
+    
+    # Return true if it's likely a bandwidth query
+    return (bandwidth_match and (file_match or stat_match)) or (file_match and stat_match)
+
+
 def generate_response_with_reasoning(query):
     """Generate a response with step-by-step reasoning"""
     try:
@@ -125,7 +162,7 @@ def generate_with_local_model(prompt):
     """Generate text using a local DeepSeek model if available"""
     try:
         # Load model and tokenizer
-        model_name = MODEL_NAME
+        model_name = os.getenv("MODEL_NAME")
         tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
         
         # Try to use GPU if available, otherwise use CPU
@@ -172,18 +209,19 @@ def generate_with_api(prompt, context_docs=None, query=None):
     try:        
         # Initialize the client
         hf_token = os.getenv("HF_TOKEN")
+        model_name = os.getenv("MODEL_NAME")
         if not hf_token:
             print("No Hugging Face token found. Trying without authentication...")
             client = InferenceClient()
         else:
             client = InferenceClient(token=hf_token)
         
-        print(f"Sending request to model: {MODEL_NAME}")
+        print(f"Sending request to model: {model_name}")
         
         # Generate response using the API
         response = client.text_generation(
             prompt=prompt,
-            model=MODEL_NAME,
+            model=model_name,
             max_new_tokens=150,
             temperature=0.7,
             repetition_penalty=1.1
@@ -197,7 +235,7 @@ def generate_with_api(prompt, context_docs=None, query=None):
         print(f"API inference error: {e}")
         
         # Add debugging information to help troubleshoot
-        print(f"Attempted to use model: {MODEL_NAME}")
+        print(f"Attempted to use model: {model_name}")
         print("Try running without HF_TOKEN by setting it to an empty string in .env")
         
         # Use the fallback parser if context and query are available

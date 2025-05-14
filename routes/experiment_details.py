@@ -511,7 +511,7 @@ def display_page(simulation_id):
                 with st.chat_message("assistant"):
                     try:
                         with st.spinner("Analyzing simulation data..."):
-                            answer = generate_response(user_question)
+                            answer = generate_response(user_question, run_dir=experiment.get("run_dir"))
                             st.write(answer)
                             # Save to session state
                             st.session_state.chat_history.append((user_question, answer))

@@ -102,6 +102,7 @@ shellingham==1.5.4
 six==1.16.0
 smmap==5.0.1
 streamlit==1.40.1
+streamlit_js_eval==0.1.5
 style==1.1.0
 sympy==1.13.1
 tenacity==9.0.0

@@ -7,11 +7,32 @@ from dotenv import load_dotenv
 import pandas as pd
 import io
 import re
+import requests
+import json
 
 load_dotenv()
 
 # Change to a small model that's definitely available on the free tier
 model_name = os.getenv("MODEL_NAME")
+
+
+def generate_with_ollama(prompt, model_name="deepseek-r1:1.5b"):
+    try:
+        response = requests.post(
+            "http://localhost:11434/api/generate",
+            headers={"Content-Type": "application/json"},
+            data=json.dumps({
+                "model": model_name,
+                "prompt": prompt,
+                "stream": False
+            })
+        )
+        response.raise_for_status()
+        result = response.json()
+        return result.get("response", "").strip()
+    except Exception as e:
+        print(f"Error using local Ollama model: {e}")
+        return "There was an error calling the local model through Ollama."
 
 
 def generate_response(query, run_dir=None):
@@ -68,8 +89,13 @@ User Question: {query}
 Answer:"""
         
         try:
-            # Always use the Hugging Face Inference API instead of trying local model
-            response = generate_with_api(prompt, context_docs, query)
+            # Check whether to use local Ollama model or HuggingFace API
+            use_local = os.getenv("USE_LOCAL_MODEL", "false").lower() == "true"
+            
+            if use_local:
+                response = generate_with_ollama(prompt)
+            else:
+                response = generate_with_api(prompt, context_docs, query)
                 
             # Add reasoning block after the main answer
             context_summary = "\n".join([f"- {filename}" for filename in filenames])

@@ -1,0 +1,265 @@
+
+  You can now view your Streamlit app in your browser.
+
+  Local URL: http://localhost:8502
+  Network URL: http://172.29.79.159:8502
+
+gio: http://localhost:8502: Operation not supported
+2025-05-13 22:05:42 [INFO] PyTorch initialized successfully.
+PROJECT_ROOT:  /home/joe/simulations-platform
+FLOODNS_ROOT:  /home/joe/simulations-platform/floodns
+=== local_run_single_job called with seed=0, n_core_failures=0, ring_size=2, model=BLOOM, alg=Routing.ecmp
+Run directory: /home/joe/simulations-platform/floodns/runs/seed_0/concurrent_jobs_1/0_core_failures/ring_size_2/BLOOM/ecmp
+JAR file found at /home/joe/simulations-platform/floodns/floodns-basic-sim.jar
+=== local_run_single_job STDOUT ===
+Starting simulation with run directory: /home/joe/simulations-platform/floodns/runs/seed_0/concurrent_jobs_1/0_core_failures/ring_size_2/BLOOM/ecmp
+Logs are stored in: /home/joe/simulations-platform/floodns/runs/seed_0/concurrent_jobs_1/0_core_failures/ring_size_2/BLOOM/ecmp/logs_floodns
+Reading job epoch schedule from directory: /home/joe/simulations-platform/floodns/traffic_pairs/seed_0/concurrent_jobs_1/ring_size_2/BLOOM
+ECMP ROUTING CALCULATION
+  > Calculating Floyd-Warshall
+  > Setting next hops for each switch towards each ToR
+
+SIMULATION
+Running the simulation for 604800000000000 time units...
+ 0.00% - Simulation Time = ~7e+09 time units ::: Wallclock Time = 0.00 s.
+ 0.00% - Simulation Time = ~7e+09 time units ::: Wallclock Time = 0.01 s.
+ 0.00% - Simulation Time = ~7e+09 time units ::: Wallclock Time = 0.02 s.
+ 0.00% - Simulation Time = ~7e+09 time units ::: Wallclock Time = 0.02 s.
+ 0.00% - Simulation Time = ~8e+09 time units ::: Wallclock Time = 0.03 s.
+ 0.00% - Simulation Time = ~8e+09 time units ::: Wallclock Time = 0.03 s.
+ 0.00% - Simulation Time = ~8e+09 time units ::: Wallclock Time = 0.03 s.
+ 0.00% - Simulation Time = ~8e+09 time units ::: Wallclock Time = 0.04 s.
+ 0.00% - Simulation Time = ~9e+09 time units ::: Wallclock Time = 0.04 s.
+ 0.00% - Simulation Time = ~9e+09 time units ::: Wallclock Time = 0.04 s.
+ 0.00% - Simulation Time = ~9e+09 time units ::: Wallclock Time = 0.04 s.
+ 0.00% - Simulation Time = ~1e+10 time units ::: Wallclock Time = 0.04 s.
+ 0.00% - Simulation Time = ~1e+10 time units ::: Wallclock Time = 0.04 s.
+ 0.00% - Simulation Time = ~1e+10 time units ::: Wallclock Time = 0.04 s.
+ 0.00% - Simulation Time = ~1e+10 time units ::: Wallclock Time = 0.04 s.
+ 0.00% - Simulation Time = ~1e+10 time units ::: Wallclock Time = 0.04 s.
+ 0.00% - Simulation Time = ~1e+10 time units ::: Wallclock Time = 0.04 s.
+ 0.00% - Simulation Time = ~1e+10 time units ::: Wallclock Time = 0.04 s.
+ 0.00% - Simulation Time = ~1e+10 time units ::: Wallclock Time = 0.04 s.
+ 0.00% - Simulation Time = ~1e+10 time units ::: Wallclock Time = 0.05 s.
+ 0.00% - Simulation Time = ~1e+10 time units ::: Wallclock Time = 0.05 s.
+ 0.00% - Simulation Time = ~1e+10 time units ::: Wallclock Time = 0.06 s.
+ 0.00% - Simulation Time = ~1e+10 time units ::: Wallclock Time = 0.06 s.
+ 0.00% - Simulation Time = ~1e+10 time units ::: Wallclock Time = 0.06 s.
+ 0.00% - Simulation Time = ~1e+10 time units ::: Wallclock Time = 0.06 s.
+ 0.00% - Simulation Time = ~1e+10 time units ::: Wallclock Time = 0.07 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.07 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.07 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.07 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.07 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.07 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.07 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.07 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.08 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.08 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.08 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.08 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.08 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.08 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.08 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.08 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.08 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.08 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.09 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.09 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.09 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.09 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.09 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.09 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.09 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.09 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.09 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.10 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.10 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.10 s.
+ 0.00% - Simulation Time = ~2e+10 time units ::: Wallclock Time = 0.10 s.
+ 0.00% - Simulation Time = ~3e+10 time units ::: Wallclock Time = 0.10 s.
+ 0.00% - Simulation Time = ~3e+10 time units ::: Wallclock Time = 0.10 s.
+ 0.00% - Simulation Time = ~3e+10 time units ::: Wallclock Time = 0.10 s.
+ 0.00% - Simulation Time = ~3e+10 time units ::: Wallclock Time = 0.10 s.
+ 0.00% - Simulation Time = ~3e+10 time units ::: Wallclock Time = 0.10 s.
+ 0.00% - Simulation Time = ~3e+10 time units ::: Wallclock Time = 0.10 s.
+ 0.00% - Simulation Time = ~3e+10 time units ::: Wallclock Time = 0.10 s.
+ 0.00% - Simulation Time = ~3e+10 time units ::: Wallclock Time = 0.10 s.
+ 0.00% - Simulation Time = ~3e+10 time units ::: Wallclock Time = 0.10 s.
+ 0.00% - Simulation Time = ~3e+10 time units ::: Wallclock Time = 0.11 s.
+ 0.00% - Simulation Time = ~3e+10 time units ::: Wallclock Time = 0.11 s.
+ 0.00% - Simulation Time = ~3e+10 time units ::: Wallclock Time = 0.11 s.
+ 0.01% - Simulation Time = ~3e+10 time units ::: Wallclock Time = 0.11 s.
+ 0.01% - Simulation Time = ~3e+10 time units ::: Wallclock Time = 0.11 s.
+ 0.01% - Simulation Time = ~3e+10 time units ::: Wallclock Time = 0.11 s.
+ 0.01% - Simulation Time = ~3e+10 time units ::: Wallclock Time = 0.11 s.
+ 0.01% - Simulation Time = ~3e+10 time units ::: Wallclock Time = 0.11 s.
+ 0.01% - Simulation Time = ~3e+10 time units ::: Wallclock Time = 0.11 s.
+ 0.01% - Simulation Time = ~3e+10 time units ::: Wallclock Time = 0.11 s.
+ 0.01% - Simulation Time = ~3e+10 time units ::: Wallclock Time = 0.12 s.
+ 0.01% - Simulation Time = ~3e+10 time units ::: Wallclock Time = 0.12 s.
+ 0.01% - Simulation Time = ~3e+10 time units ::: Wallclock Time = 0.12 s.
+ 0.01% - Simulation Time = ~3e+10 time units ::: Wallclock Time = 0.12 s.
+ 0.01% - Simulation Time = ~3e+10 time units ::: Wallclock Time = 0.12 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.12 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.12 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.12 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.12 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.12 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.12 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.13 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.13 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.13 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.13 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.13 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.13 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.13 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.13 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.13 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.13 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.13 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.13 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.13 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.13 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.13 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.13 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.14 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.14 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.14 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.14 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.14 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.14 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.14 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.14 s.
+ 0.01% - Simulation Time = ~4e+10 time units ::: Wallclock Time = 0.14 s.
+ 0.01% - Simulation Time = ~5e+10 time units ::: Wallclock Time = 0.14 s.
+ 0.01% - Simulation Time = ~5e+10 time units ::: Wallclock Time = 0.14 s.
+ 0.01% - Simulation Time = ~5e+10 time units ::: Wallclock Time = 0.14 s.
+ 0.01% - Simulation Time = ~5e+10 time units ::: Wallclock Time = 0.14 s.
+ 0.01% - Simulation Time = ~5e+10 time units ::: Wallclock Time = 0.14 s.
+ 0.01% - Simulation Time = ~5e+10 time units ::: Wallclock Time = 0.14 s.
+ 0.01% - Simulation Time = ~5e+10 time units ::: Wallclock Time = 0.14 s.
+ 0.01% - Simulation Time = ~5e+10 time units ::: Wallclock Time = 0.14 s.
+ 0.01% - Simulation Time = ~5e+10 time units ::: Wallclock Time = 0.15 s.
+ 0.01% - Simulation Time = ~5e+10 time units ::: Wallclock Time = 0.15 s.
+ 0.01% - Simulation Time = ~5e+10 time units ::: Wallclock Time = 0.15 s.
+ 0.01% - Simulation Time = ~5e+10 time units ::: Wallclock Time = 0.15 s.
+ 0.01% - Simulation Time = ~5e+10 time units ::: Wallclock Time = 0.15 s.
+ 0.01% - Simulation Time = ~5e+10 time units ::: Wallclock Time = 0.15 s.
+ 0.01% - Simulation Time = ~5e+10 time units ::: Wallclock Time = 0.15 s.
+ 0.01% - Simulation Time = ~5e+10 time units ::: Wallclock Time = 0.15 s.
+ 0.01% - Simulation Time = ~5e+10 time units ::: Wallclock Time = 0.16 s.
+ 0.01% - Simulation Time = ~5e+10 time units ::: Wallclock Time = 0.16 s.
+ 0.01% - Simulation Time = ~5e+10 time units ::: Wallclock Time = 0.16 s.
+ 0.01% - Simulation Time = ~5e+10 time units ::: Wallclock Time = 0.16 s.
+ 0.01% - Simulation Time = ~5e+10 time units ::: Wallclock Time = 0.16 s.
+ 0.01% - Simulation Time = ~5e+10 time units ::: Wallclock Time = 0.16 s.
+ 0.01% - Simulation Time = ~5e+10 time units ::: Wallclock Time = 0.16 s.
+ 0.01% - Simulation Time = ~5e+10 time units ::: Wallclock Time = 0.16 s.
+ 0.01% - Simulation Time = ~5e+10 time units ::: Wallclock Time = 0.16 s.
+ 0.01% - Simulation Time = ~5e+10 time units ::: Wallclock Time = 0.16 s.
+ 0.01% - Simulation Time = ~5e+10 time units ::: Wallclock Time = 0.16 s.
+ 0.01% - Simulation Time = ~5e+10 time units ::: Wallclock Time = 0.16 s.
+ 0.01% - Simulation Time = ~6e+10 time units ::: Wallclock Time = 0.17 s.
+ 0.01% - Simulation Time = ~6e+10 time units ::: Wallclock Time = 0.17 s.
+ 0.01% - Simulation Time = ~6e+10 time units ::: Wallclock Time = 0.17 s.
+ 0.01% - Simulation Time = ~6e+10 time units ::: Wallclock Time = 0.17 s.
+ 0.01% - Simulation Time = ~6e+10 time units ::: Wallclock Time = 0.17 s.
+ 0.01% - Simulation Time = ~6e+10 time units ::: Wallclock Time = 0.17 s.
+ 0.01% - Simulation Time = ~6e+10 time units ::: Wallclock Time = 0.17 s.
+ 0.01% - Simulation Time = ~6e+10 time units ::: Wallclock Time = 0.17 s.
+ 0.01% - Simulation Time = ~6e+10 time units ::: Wallclock Time = 0.17 s.
+ 0.01% - Simulation Time = ~6e+10 time units ::: Wallclock Time = 0.17 s.
+ 0.01% - Simulation Time = ~6e+10 time units ::: Wallclock Time = 0.17 s.
+ 0.01% - Simulation Time = ~6e+10 time units ::: Wallclock Time = 0.17 s.
+ 0.01% - Simulation Time = ~6e+10 time units ::: Wallclock Time = 0.17 s.
+ 0.01% - Simulation Time = ~6e+10 time units ::: Wallclock Time = 0.17 s.
+ 0.01% - Simulation Time = ~6e+10 time units ::: Wallclock Time = 0.17 s.
+ 0.01% - Simulation Time = ~6e+10 time units ::: Wallclock Time = 0.17 s.
+ 0.01% - Simulation Time = ~6e+10 time units ::: Wallclock Time = 0.17 s.
+ 0.01% - Simulation Time = ~6e+10 time units ::: Wallclock Time = 0.17 s.
+ 0.01% - Simulation Time = ~6e+10 time units ::: Wallclock Time = 0.17 s.
+ 0.01% - Simulation Time = ~6e+10 time units ::: Wallclock Time = 0.17 s.
+ 0.01% - Simulation Time = ~6e+10 time units ::: Wallclock Time = 0.17 s.
+ 0.01% - Simulation Time = ~6e+10 time units ::: Wallclock Time = 0.17 s.
+ 0.01% - Simulation Time = ~6e+10 time units ::: Wallclock Time = 0.18 s.
+ 0.01% - Simulation Time = ~6e+10 time units ::: Wallclock Time = 0.18 s.
+ 0.01% - Simulation Time = ~6e+10 time units ::: Wallclock Time = 0.18 s.
+ 0.01% - Simulation Time = ~6e+10 time units ::: Wallclock Time = 0.18 s.
+ 0.01% - Simulation Time = ~6e+10 time units ::: Wallclock Time = 0.18 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.18 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.18 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.18 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.18 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.18 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.18 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.18 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.19 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.19 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.19 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.19 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.19 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.19 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.19 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.19 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.19 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.19 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.19 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.19 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.19 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.19 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.19 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.19 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.19 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.19 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.19 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.20 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.20 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.20 s.
+ 0.01% - Simulation Time = ~7e+10 time units ::: Wallclock Time = 0.20 s.
+ 0.01% - Simulation Time = ~8e+10 time units ::: Wallclock Time = 0.20 s.
+ 0.01% - Simulation Time = ~8e+10 time units ::: Wallclock Time = 0.20 s.
+ 0.01% - Simulation Time = ~8e+10 time units ::: Wallclock Time = 0.20 s.
+ 0.01% - Simulation Time = ~8e+10 time units ::: Wallclock Time = 0.20 s.
+ 0.01% - Simulation Time = ~8e+10 time units ::: Wallclock Time = 0.20 s.
+ 0.01% - Simulation Time = ~8e+10 time units ::: Wallclock Time = 0.20 s.
+ 0.01% - Simulation Time = ~8e+10 time units ::: Wallclock Time = 0.20 s.
+ 0.01% - Simulation Time = ~8e+10 time units ::: Wallclock Time = 0.20 s.
+ 0.01% - Simulation Time = ~8e+10 time units ::: Wallclock Time = 0.20 s.
+ 0.01% - Simulation Time = ~8e+10 time units ::: Wallclock Time = 0.20 s.
+ 0.01% - Simulation Time = ~8e+10 time units ::: Wallclock Time = 0.20 s.
+ 0.01% - Simulation Time = ~8e+10 time units ::: Wallclock Time = 0.20 s.
+ 0.01% - Simulation Time = ~8e+10 time units ::: Wallclock Time = 0.21 s.
+ 0.01% - Simulation Time = ~8e+10 time units ::: Wallclock Time = 0.21 s.
+ 0.01% - Simulation Time = ~8e+10 time units ::: Wallclock Time = 0.21 s.
+ 0.01% - Simulation Time = ~8e+10 time units ::: Wallclock Time = 0.21 s.
+ 0.01% - Simulation Time = ~8e+10 time units ::: Wallclock Time = 0.21 s.
+ 0.01% - Simulation Time = ~8e+10 time units ::: Wallclock Time = 0.21 s.
+ 0.01% - Simulation Time = ~8e+10 time units ::: Wallclock Time = 0.21 s.
+ 0.01% - Simulation Time = ~8e+10 time units ::: Wallclock Time = 0.21 s.
+ 0.01% - Simulation Time = ~8e+10 time units ::: Wallclock Time = 0.21 s.
+ 0.01% - Simulation Time = ~8e+10 time units ::: Wallclock Time = 0.21 s.
+ 0.01% - Simulation Time = ~8e+10 time units ::: Wallclock Time = 0.21 s.
+ 0.01% - Simulation Time = ~8e+10 time units ::: Wallclock Time = 0.21 s.
+ 0.01% - Simulation Time = ~8e+10 time units ::: Wallclock Time = 0.21 s.
+ 0.01% - Simulation Time = ~8e+10 time units ::: Wallclock Time = 0.21 s.
+ 0.01% - Simulation Time = ~9e+10 time units ::: Wallclock Time = 0.21 s.
+ 0.01% - Simulation Time = ~9e+10 time units ::: Wallclock Time = 0.21 s.
+ 0.01% - Simulation Time = ~9e+10 time units ::: Wallclock Time = 0.21 s.
+ 0.01% - Simulation Time = ~9e+10 time units ::: Wallclock Time = 0.21 s.
+ 0.01% - Simulation Time = ~9e+10 time units ::: Wallclock Time = 0.21 s.
+100.00% - Simulation Time = ~6e+14 time units ::: Wallclock Time = 0.21 s.
+Finished simulation.
+Simulation of 604800000000000 time units took in wallclock time 0.2 seconds.
+
+WRITING LOGS
+  > Node logs
+  > Link logs
+  > Connection logs
+  > Flow logs
+  > Job logs
+  > Log flush took 0.0s seconds
+
+2025-05-13 22:06:12 [INFO] PyTorch version 2.7.0 available.
+2025-05-13 22:06:14 [INFO] Use pytorch device_name: cuda
+2025-05-13 22:06:14 [INFO] Load pretrained SentenceTransformer: sentence-transformers/all-MiniLM-L6-v2

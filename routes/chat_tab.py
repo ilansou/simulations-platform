@@ -1,6 +1,28 @@
 import streamlit as st
 from llm.generate import generate_response
 from routes.chat_utils import load_chat_history, save_chat_message, ingest_experiment_data
+import re
+
+def parse_thinking_tags(text):
+    """
+    Parse a response containing <thinking> tags and return content and thinking parts.
+    
+    Args:
+        text (str): The input text with potential <thinking> tags
+    
+    Returns:
+        tuple: (content, thinking) where thinking may be None if not present
+    """
+    thinking_pattern = r'<thinking>(.*?)</thinking>'
+    thinking_match = re.search(thinking_pattern, text, re.DOTALL)
+    
+    if thinking_match:
+        thinking = thinking_match.group(1).strip()
+        # Remove the thinking tags and content from the main text
+        content = re.sub(thinking_pattern, '', text, flags=re.DOTALL).strip()
+        return content, thinking
+    else:
+        return text, None
 
 def render_chat_tab(simulation_id, experiment):
     st.title("Chat with Your Simulation Data")
@@ -22,7 +44,25 @@ def render_chat_tab(simulation_id, experiment):
         with st.chat_message("user"):
             st.markdown(question)
         with st.chat_message("assistant"):
-            st.markdown(answer)
+            # Parse the answer to separate thinking part if exists
+            content, thinking = parse_thinking_tags(answer)
+            
+            # Display the main content
+            st.markdown(content)
+            
+            # Display the thinking part in a collapsible gray section if it exists
+            if thinking:
+                with st.expander("Click to see step-by-step thinking"):
+                    # Creating a gray background using markdown and replacing newlines with HTML breaks
+                    thinking_html = thinking.replace("\n", "<br>")
+                    st.markdown(
+                        f"""
+                        <div style="background-color: #f0f0f0; padding: 10px; border-radius: 5px; color: #333;">
+                        {thinking_html}
+                        </div>
+                        """, 
+                        unsafe_allow_html=True
+                    )
 
     # Input only if you can chat
     if "files_ingested" in st.session_state and st.session_state.files_ingested:
@@ -38,7 +78,27 @@ def render_chat_tab(simulation_id, experiment):
                         answer = generate_response(user_question, run_dir=experiment.get("run_dir"))
                     except Exception as e:
                         answer = f"Error generating response: {str(e)}"
-                st.markdown(answer)
+                
+                # Parse the answer to separate thinking part if exists
+                content, thinking = parse_thinking_tags(answer)
+                
+                # Display the main content
+                st.markdown(content)
+                
+                # Display the thinking part in a collapsible gray section if it exists
+                if thinking:
+                    with st.expander("Click to see step-by-step thinking"):
+                        # Creating a gray background using markdown and replacing newlines with HTML breaks
+                        thinking_html = thinking.replace("\n", "<br>")
+                        st.markdown(
+                            f"""
+                            <div style="background-color: #f0f0f0; padding: 10px; border-radius: 5px; color: #333;">
+                            {thinking_html}
+                            </div>
+                            """, 
+                            unsafe_allow_html=True
+                        )
+            
             # We save the answer to history and to the database
             st.session_state.chat_history[-1] = (user_question, answer)
             save_chat_message(simulation_id, user_question, answer)

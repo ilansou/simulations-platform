@@ -121,8 +121,6 @@ Answer:"""
             context_preview = "\n".join([doc.get("text", "")[:100] + "..." for doc in context_docs])
             
             reasoning = f"""
-
---- Reasoning ---
 1. Retrieved documents:
 {context_summary}
 
@@ -133,7 +131,7 @@ Answer:"""
 """
             
             # Return final response with reasoning
-            return f"{response}{reasoning}"
+            return f"{response}\n\n<thinking>\n{reasoning}\n</thinking>"
                 
         except Exception as e:
             error_msg = str(e)
@@ -200,8 +198,9 @@ def generate_response_with_reasoning(query):
         # Always use API for think_step_by_step
         response = think_step_by_step(query, None, combined_context, use_api=True)
         
-        # Format the response
-        formatted_response = f"## Step-by-Step Reasoning\n\n{response['reasoning']}\n\n## Final Answer\n\n{response['result']}"
+        # Format the response to make reasoning part separate from the result
+        # This will be parsed in the UI to create a dropdown
+        formatted_response = f"<thinking>\n{response['reasoning']}\n</thinking>\n\n{response['result']}"
         
         return formatted_response
         

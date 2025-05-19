@@ -367,7 +367,7 @@ def display_page(simulation_id):
             experiment = fetch_experiment_details(simulation_id)
             st.session_state.experiment = experiment
             
-            print("experiment:", experiment)
+            #print("experiment:", experiment)
 
             # if experiment["state"] == "Running" and experiment.get("run_dir"):
             #     if check_experiment_status(experiment["run_dir"]):
@@ -383,8 +383,8 @@ def display_page(simulation_id):
 
             with col1:
                 st.button("Re-run", on_click=lambda: re_run_experiment(simulation_id))
-                print("run_dir:", experiment.get("run_dir"))
-                print("state:", experiment.get("state"))
+                # print("run_dir:", experiment.get("run_dir"))
+                # print("state:", experiment.get("state"))
                 
             with col2:
                 st.button("Edit", on_click=lambda: st.session_state.update({"edit_experiment_modal": True}))

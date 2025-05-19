@@ -133,8 +133,8 @@ def main():
     successful_runs = 0
     failed_runs = 0
     # max_runs = 5
-    
-    actual_configurations = configurations[1040:]
+
+    actual_configurations = configurations[50:351]
     for i, config in enumerate(actual_configurations):
         print(f"\nRunning experiment {i+1}/{len(configurations)}")
         ring_size_str = "different ring size" if config["ring_size"] =="different" else f"ring size {config['ring_size']}"

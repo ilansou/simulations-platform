@@ -4,6 +4,7 @@ from pymongo import MongoClient
 from sentence_transformers import SentenceTransformer
 from db_client import chat_collection, db_client
 import warnings
+import glob
 
 warnings.filterwarnings("ignore", message=".*torch.classes.*")
 
@@ -59,26 +60,38 @@ def process_simulation_output(run_dir):
     print("Creating 'chat' collection in experiment_db")
     db.create_collection("chat")
     
+    # All expected CSV files from FloodNS framework documentation
     output_files = [
         "flow_bandwidth.csv",
         "flow_info.csv",
+        "link_info.csv",
+        "link_num_active_flows.csv",
         "link_utilization.csv",
         "node_info.csv",
+        "node_num_active_flows.csv",
         "connection_bandwidth.csv",
         "connection_info.csv"
     ]
     
     processed_files = []
     
-    for filename in output_files:
-        file_path = os.path.join(run_dir, filename)
-        if os.path.exists(file_path) and os.path.isfile(file_path):
-            try:
-                process_and_store_data(file_path)
-                processed_files.append(filename)
-                print(f"Successfully processed {filename}")
-            except Exception as e:
-                print(f"Error processing {filename}: {e}")
+    # Automatically detect and process all CSV files in the run directory
+    csv_files = glob.glob(os.path.join(run_dir, "*.csv"))
+    print(f"Found {len(csv_files)} CSV files in {run_dir}")
+    
+    for file_path in csv_files:
+        filename = os.path.basename(file_path)
+        try:
+            process_and_store_data(file_path)
+            processed_files.append(filename)
+            print(f"Successfully processed {filename}")
+        except Exception as e:
+            print(f"Error processing {filename}: {e}")
+    
+    # Check if any expected files are missing and warn
+    for expected_file in output_files:
+        if expected_file not in processed_files:
+            print(f"Warning: Expected file {expected_file} was not found in the run directory")
     
     return processed_files
 

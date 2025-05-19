@@ -395,6 +395,37 @@ def main():
     Main function to render the Streamlit simulation dashboard.
     """
     st.title("Simulation Dashboard")
+    
+    # Add FloodNS Framework Overview section
+    with st.expander("Framework Overview", expanded=False):
+        st.markdown("""
+        ## FloodNS Framework Concepts
+        
+        ### Core Components
+        
+        - **Network(V, E, F):** Network consisting of node set *V* and link set *E* connecting these nodes. Within the network is a set of flows *F* present.
+        - **Node:** Point in the network to which links can be connected. It can function as a flow entry, relay or exit.
+        - **Link(u, v, c):** A directed edge from node *u* to node *v* with a fixed capacity *c*.
+        - **Flow(s, t, path):** A stream from start node *s* to target node *t* over a fixed *path* with a certain bandwidth.
+        - **Connection(Q, s, t):** Abstraction for an amount *Q* that is desired to be transported from *s* to *t* over a set of flows.
+        - **Event:** Core component which is user-defined.
+        - **Aftermath:** Core component which enforces some state invariant (user-defined), for example max-min fair (MMF) allocation.
+        - **Simulator:** Event-driven single-run engine that executes events.
+        
+        ### CSV Log Files
+        
+        The simulation produces these log files:
+        
+        - **flow_bandwidth.csv:** Flow bandwidth intervals
+        - **flow_info.csv:** Aggregate flow information
+        - **link_info.csv:** Aggregate link information
+        - **link_num_active_flows.csv:** Link active flows intervals
+        - **link_utilization.csv:** Link utilization intervals
+        - **node_info.csv:** Aggregate node information
+        - **node_num_active_flows.csv:** Node active flows intervals
+        - **connection_bandwidth.csv:** Connection bandwidth intervals
+        - **connection_info.csv:** Aggregate connection information
+        """)
 
     if "edit_simulation_id" not in st.session_state:
             st.session_state.edit_simulation_id = None

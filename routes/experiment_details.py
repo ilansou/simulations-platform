@@ -353,32 +353,55 @@ def run_simulation(simulation_id, num_jobs, num_cores, ring_size, routing, seed,
         )
 
 def display_page(simulation_id):
-    valid_num_jobs = [1, 2, 3, 4, 5]
-    valid_num_cores = [0, 1, 4, 8]
-    valid_ring_sizes = [2, 4, 8, "different"]
-    valid_routing_algorithms = ["ecmp", "ilp_solver", "simulated_annealing", "edge_coloring", "mcvlc"]
-    valid_seeds = [0, 42, 200, 404, 1234]
-    valid_models = ["BLOOM", "GPT_3", "LLAMA2_70B"]
-
-    tab1, tab2 = st.tabs(["Experiment Details", "Chat"])
-
-    with tab1:
-        experiment = None
-        if experiment not in st.session_state or not st.session_state.experiment:
-            experiment = fetch_experiment_details(simulation_id)
-            st.session_state.experiment = experiment
+    """
+    Displays the experiment details page.
+    
+    Args:
+        simulation_id (str): The ID of the experiment to display
+    """
+    try:
+        experiment = fetch_experiment_details(simulation_id)
+        if not experiment:
+            st.error(f"Could not fetch experiment with ID {simulation_id}")
+            return
+        
+        st.title(f"Experiment: {experiment['simulation_name']}")
+        
+        # Add FloodNS Framework Overview
+        with st.expander("Framework Overview", expanded=False):
+            st.markdown("""
+            ## FloodNS Framework Concepts
             
-            print("experiment:", experiment)
+            ### Core Components
+            
+            - **Network(V, E, F):** Network consisting of node set *V* and link set *E* connecting these nodes. Within the network is a set of flows *F* present.
+            - **Node:** Point in the network to which links can be connected. It can function as a flow entry, relay or exit.
+            - **Link(u, v, c):** A directed edge from node *u* to node *v* with a fixed capacity *c*.
+            - **Flow(s, t, path):** A stream from start node *s* to target node *t* over a fixed *path* with a certain bandwidth.
+            - **Connection(Q, s, t):** Abstraction for an amount *Q* that is desired to be transported from *s* to *t* over a set of flows.
+            - **Event:** Core component which is user-defined.
+            - **Aftermath:** Core component which enforces some state invariant (user-defined), for example max-min fair (MMF) allocation.
+            - **Simulator:** Event-driven single-run engine that executes events.
+            
+            ### CSV Log Files
+            
+            The simulation produces these log files:
+            
+            - **flow_bandwidth.csv:** Flow bandwidth intervals
+            - **flow_info.csv:** Aggregate flow information
+            - **link_info.csv:** Aggregate link information
+            - **link_num_active_flows.csv:** Link active flows intervals
+            - **link_utilization.csv:** Link utilization intervals
+            - **node_info.csv:** Aggregate node information
+            - **node_num_active_flows.csv:** Node active flows intervals
+            - **connection_bandwidth.csv:** Connection bandwidth intervals
+            - **connection_info.csv:** Aggregate connection information
+            """)
+            
+        # Create tabs for the experiment details
+        tab1, tab2 = st.tabs(["Experiment Details", "Chat with Simulation Data"])
 
-            # if experiment["state"] == "Running" and experiment.get("run_dir"):
-            #     if check_experiment_status(experiment["run_dir"]):
-            #         experiments_collection.update_one(
-            #             {"_id": ObjectId(simulation_id)},
-            #             {"$set": {"state": "Finished", "end_time": datetime.now().isoformat()}}
-            #         )
-            #         st.session_state.files_ingested = None  # Reset to trigger ingestion
-            #         st.rerun()
-
+        with tab1:
             st.header(f"Simulation Name: {experiment['simulation_name']}")
             col1, col2, col3 = st.columns([1, 1, 1])
 
@@ -423,8 +446,11 @@ def display_page(simulation_id):
                 filenames = [
                     "flow_bandwidth.csv",
                     "flow_info.csv",
+                    "link_info.csv",
+                    "link_num_active_flows.csv",
                     "link_utilization.csv",
                     "node_info.csv",
+                    "node_num_active_flows.csv",
                     "connection_bandwidth.csv",
                     "connection_info.csv"
                 ]
@@ -470,9 +496,14 @@ def display_page(simulation_id):
                         st.session_state.edit_experiment_modal = False
 
                     if submit_button:
-                        save_edited_experiment(simulation_id, simulation_name, params)
-                        st.session_state.experiment = fetch_experiment_details(simulation_id)
-                        placeholder.empty()
+                        try:
+                            save_edited_experiment(simulation_id, simulation_name, params)
+                            st.session_state.experiment = fetch_experiment_details(simulation_id)
+                            placeholder.empty()
+                        except Exception as e:
+                            st.error(f"Error in experiment details: {e}")
+    except Exception as e:
+        st.error(f"Error in experiment details: {e}")
 
     with tab2:
         st.title("Chat with Your Simulation Data")
@@ -553,10 +584,10 @@ def display_page(simulation_id):
                 st.warning("Chat is only available for finished experiments with processed output files. Please ensure your experiment is complete and the data has been processed successfully.")
 
                 # Add button to try processing files if they exist but weren't processed
-                if st.session_state.experiment and st.session_state.experiment.get("state") == "Finished" and st.session_state.experiment.get("run_dir"):
+                if experiment and experiment.get("state") == "Finished" and experiment.get("run_dir"):
                     if st.button("Process Files for Chat"):
                         with st.spinner("Processing simulation files..."):
-                            st.session_state.files_ingested = ingest_experiment_data(st.session_state.experiment)
+                            st.session_state.files_ingested = ingest_experiment_data(experiment)
         
         # Add autoscroll at the very end - use window.scrollTo for best compatibility
         components.html(

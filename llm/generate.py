@@ -15,6 +15,22 @@ load_dotenv()
 # Change to a small model that's definitely available on the free tier
 model_name = os.getenv("MODEL_NAME")
 
+# Read FloodNS framework.md as static context for all prompts
+def get_framework_context():
+    """Read FloodNS framework.md to provide key concepts as context for LLM prompts"""
+    framework_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
+                               "floodns", "doc", "framework.md")
+    try:
+        with open(framework_path, "r") as f:
+            framework_content = f.read()
+        return framework_content
+    except Exception as e:
+        print(f"Warning: Could not read framework.md: {e}")
+        return "Framework document could not be loaded. Key concepts include: Network, Node, Link, Flow, Connection, Event, Aftermath, and Simulator."
+
+# Load the framework context once when the module is imported
+FRAMEWORK_CONTEXT = get_framework_context()
+
 
 def generate_with_ollama(prompt, model_name="deepseek-r1:1.5b"):
     try:
@@ -75,14 +91,17 @@ def generate_response(query, run_dir=None):
         # Combine contexts
         context_string = "\n\n".join(contexts)
         
-        # Build the RAG prompt
+        # Build the RAG prompt with framework context
         prompt = f"""You are an AI assistant analyzing network simulation data. 
 Use only the following context to answer the user's question.
 Be specific and extract numbers, statistics and factual information from the provided data.
 If the data contains CSV content, analyze the structure and count unique entries if needed.
 For node counts, count unique node IDs. For bandwidth questions, look for numerical values.
 
-Context:
+## FloodNS Framework Concepts:
+{FRAMEWORK_CONTEXT}
+
+## Simulation Data:
 {context_string}
 
 User Question: {query}
@@ -171,8 +190,15 @@ def generate_response_with_reasoning(query):
         # Combine contexts
         context_string = "\n\n".join(contexts)
         
+        # Add framework concepts to the context
+        combined_context = f"""## FloodNS Framework Concepts:
+{FRAMEWORK_CONTEXT}
+
+## Simulation Data:
+{context_string}"""
+        
         # Always use API for think_step_by_step
-        response = think_step_by_step(query, None, context_string, use_api=True)
+        response = think_step_by_step(query, None, combined_context, use_api=True)
         
         # Format the response
         formatted_response = f"## Step-by-Step Reasoning\n\n{response['reasoning']}\n\n## Final Answer\n\n{response['result']}"

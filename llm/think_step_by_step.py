@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from typing import Dict, List, Tuple, Any, Optional, Union
 
-from llm.generate import generate_with_api, generate_with_local_model
+from llm.generate import generate_with_api, generate_with_local_model, FRAMEWORK_CONTEXT
 
 
 def think_step_by_step(query: str, data: Optional[Dict[str, pd.DataFrame]] = None, 
@@ -112,8 +112,12 @@ def analyze_and_explain(query: str, run_dir: str, use_api: bool = True) -> Dict[
             "link": df_link
         }
         
-        # Add context about the simulation
-        context = f"This analysis is based on simulation data from: {run_dir}"
+        # Add context about the simulation and framework concepts
+        context = f"""## FloodNS Framework Concepts:
+{FRAMEWORK_CONTEXT}
+
+## Simulation Data:
+This analysis is based on simulation data from: {run_dir}"""
         
         # Get the reasoning and result
         return think_step_by_step(query, data, context, use_api)

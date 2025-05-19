@@ -1,5 +1,7 @@
 import os
 import sys
+from llm.ingest import process_simulation_output
+from llm.retrieval import setup_vector_search_index
 from dotenv import load_dotenv
 
 # Load environment variables first
@@ -16,9 +18,6 @@ except Exception as e:
     print(f"Error importing db_client: {e}")
     print("Please ensure MongoDB is running and MONGODB_URI is set in your .env file")
     sys.exit(1)
-
-from llm.ingest import process_simulation_output
-from llm.retrieval import setup_vector_search_index
 
 def fix_chat_functionality():
     """Function to diagnose and fix chat functionality issues"""
@@ -78,7 +77,7 @@ def recreate_chat_collection():
         if os.path.exists(dir_name) and os.path.isdir(dir_name):
             # Look for subdirectories that might contain simulation output
             subdirs = [os.path.join(dir_name, d) for d in os.listdir(dir_name) 
-                      if os.path.isdir(os.path.join(dir_name, d))]
+                    if os.path.isdir(os.path.join(dir_name, d))]
             
             # Check each subdir for simulation output files
             for subdir in subdirs:

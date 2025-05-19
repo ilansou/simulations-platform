@@ -51,6 +51,11 @@ def process_simulation_output(run_dir):
         print("MongoDB connection not available")
         return []
     
+    # If run_dir is a relative path, convert it to absolute using FLOODNS_ROOT
+    if not os.path.isabs(run_dir):
+        from conf import FLOODNS_ROOT
+        run_dir = os.path.join(FLOODNS_ROOT, run_dir)
+    
     # Drop and recreate the collection to avoid dimension conflicts
     db = db_client["experiment_db"]
     if "chat" in db.list_collection_names():

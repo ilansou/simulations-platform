@@ -124,28 +124,58 @@ def delete_experiment(simulation_id):
     except Exception as e:
         st.error(f"Error deleting experiment: {e}")
         
-def render_output_files(folder_path: str, filenames):
+def render_output_files(run_dir, filenames):
     """
-    Checks the folder for specific files and adds download buttons for each.
+    Renders links to download output files from the simulation.
     """
-    folder_abs = os.path.abspath(folder_path)
-    if not os.path.exists(folder_abs) or not os.path.isdir(folder_abs):
-        st.write(f"Folder not found or is not a directory: {folder_abs}")
+    # If run_dir is a relative path, convert it to absolute using FLOODNS_ROOT
+    if not os.path.isabs(run_dir):
+        run_dir = os.path.join(FLOODNS_ROOT, run_dir)
+        
+    # Check if any files exist
+    files_exist = False
+    for filename in filenames:
+        file_path = os.path.join(run_dir, filename)
+        if os.path.exists(file_path):
+            files_exist = True
+            break
+    
+    if not files_exist:
+        st.write("No output files found for this experiment.")
         return
-
-    for fname in filenames:
-        fpath = os.path.join(folder_abs, fname)
-        if os.path.isfile(fpath):
-            with open(fpath, "rb") as f:
-                file_bytes = f.read()
-            st.download_button(
-                label=f"Download {fname}",
-                data=file_bytes,
-                file_name=fname,
-                mime="application/octet-stream"
-            )
+    
+    # Create a container to display files in a grid layout
+    file_container = st.container()
+    
+    # Create two columns within the container
+    col1, col2 = file_container.columns(2)
+    
+    # Track which column to use for each file
+    use_col1 = True
+    
+    # Display each file as a download button
+    for filename in filenames:
+        file_path = os.path.join(run_dir, filename)
+        if os.path.exists(file_path):
+            try:
+                # Read the file and create a download button
+                with open(file_path, "rb") as file:
+                    file_data = file.read()
+                    col = col1 if use_col1 else col2
+                    col.download_button(
+                        label=filename,
+                        data=file_data,
+                        file_name=filename,
+                        mime="text/csv"
+                    )
+                # Toggle column for next file
+                use_col1 = not use_col1
+            except Exception as e:
+                st.error(f"Error reading file {filename}: {e}")
         else:
-            st.write(f"File not found: {fname}")
+            # Uncomment to show missing files (often not needed for cleaner UI)
+            # st.write(f"File not found: {filename}")
+            pass
 
 
 def check_experiment_status(run_dir):
@@ -155,6 +185,10 @@ def check_experiment_status(run_dir):
     if not run_dir:
         st.error("No run directory specified. Please ensure the simulation was created successfully.")
         return False
+
+    # If run_dir is a relative path, convert it to absolute using FLOODNS_ROOT
+    if not os.path.isabs(run_dir):
+        run_dir = os.path.join(FLOODNS_ROOT, run_dir)
 
     status_file_path = os.path.join(run_dir, "run_finished.txt")
     try:
@@ -288,12 +322,18 @@ def run_simulation(simulation_id, num_jobs, num_cores, ring_size, routing, seed,
         logs_floodns_dir = os.path.join(run_dir, "logs_floodns")
         final_run_dir = logs_floodns_dir if os.path.exists(logs_floodns_dir) else run_dir
 
-        # Update the experiment with the run_dir
+        # Store the relative path instead of the absolute path
+        if final_run_dir.startswith(FLOODNS_ROOT):
+            relative_run_dir = os.path.relpath(final_run_dir, FLOODNS_ROOT)
+        else:
+            relative_run_dir = final_run_dir
+            
+        # Update the experiment with the relative run_dir
         experiments_collection.update_one(
             {"_id": ObjectId(simulation_id)},
             {
                 "$set": {
-                    "run_dir": final_run_dir,
+                    "run_dir": relative_run_dir,
                 }
             }
         )

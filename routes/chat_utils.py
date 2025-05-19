@@ -35,7 +35,10 @@ def ingest_experiment_data(experiment):
     if experiment.get("state") == "Finished" and experiment.get("run_dir"):
         try:
             with st.spinner("Processing simulation files for chat..."):
-                processed_files = process_simulation_output(experiment["run_dir"])
+                run_dir = experiment["run_dir"]
+                
+                # If run_dir is relative, it will be handled in process_simulation_output
+                processed_files = process_simulation_output(run_dir)
 
                 if not processed_files:
                     st.warning("No simulation files were processed. The chat feature may not work properly.")

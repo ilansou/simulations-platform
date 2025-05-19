@@ -8,12 +8,21 @@ from bson import ObjectId
 import os
 import streamlit.components.v1 as components
 
+from routes.chat_utils import ingest_experiment_data
+from routes.chat_tab import render_chat_tab
 from floodns.external.simulation.main import local_run_single_job, local_run_multiple_jobs, local_run_multiple_jobs_different_ring_size
 from floodns.external.schemas.routing import Routing
 from db_client import experiments_collection
 from llm.retrieval import setup_vector_search_index
 from llm.ingest import process_simulation_output
 from conf import FLOODNS_ROOT
+
+from routes.valid_options import (
+    valid_num_jobs, valid_num_cores, valid_ring_sizes,
+    valid_routing_algorithms, valid_seeds, valid_models
+)
+
+
 
 def fetch_experiment_details(simulation_id):
     try:
@@ -138,58 +147,6 @@ def render_output_files(folder_path: str, filenames):
         else:
             st.write(f"File not found: {fname}")
 
-
-def ingest_experiment_data(experiment):
-    """Process and store experiment output files for LLM retrieval"""
-    if experiment.get("state") == "Finished" and experiment.get("run_dir"):
-        try:
-            with st.spinner("Processing simulation files for chat..."):
-                processed_files = process_simulation_output(experiment["run_dir"])
-                
-                if not processed_files:
-                    st.warning("No simulation files were processed. The chat feature may not work properly.")
-                    return False
-                    
-                # Set up vector search index
-                if setup_vector_search_index():
-                    st.success("Vector search capabilities ready!")
-                else:
-                    st.warning("Vector search setup failed. Chat may not work optimally.")
-                
-                st.session_state.ingested_files = processed_files
-                st.success(f"Successfully processed {len(processed_files)} simulation files for chat.")
-                return len(processed_files) > 0
-        except Exception as e:
-            st.error(f"Error processing simulation files: {str(e)}")
-            import traceback
-            st.error(traceback.format_exc())
-            return False
-    return False
-
-
-def save_chat_message(simulation_id, question, answer):
-    """Save chat message to the database to persist between sessions"""
-    try:
-        experiments_collection.update_one(
-            {"_id": ObjectId(simulation_id)},
-            {"$push": {"chat_history": {"question": question, "answer": answer, "timestamp": datetime.now().isoformat()}}}
-        )
-        return True
-    except Exception as e:
-        st.error(f"Error saving chat message: {e}")
-        return False
-
-
-def load_chat_history(simulation_id):
-    """Load chat history from the database"""
-    try:
-        experiment = experiments_collection.find_one({"_id": ObjectId(simulation_id)})
-        if experiment and "chat_history" in experiment:
-            return [(msg["question"], msg["answer"]) for msg in experiment["chat_history"]]
-        return []
-    except Exception as e:
-        st.error(f"Error loading chat history: {e}")
-        return []
 
 def check_experiment_status(run_dir):
     """
@@ -506,107 +463,7 @@ def display_page(simulation_id):
         st.error(f"Error in experiment details: {e}")
 
     with tab2:
-        st.title("Chat with Your Simulation Data")
-
-        # Create a layout with two main rows - chat history (flexible height) and input (fixed at bottom)
-        chat_container = st.container()
-        
-        # Input at the bottom
-        input_container = st.container()
-        
-        # Display available files and example questions at the top
-        with chat_container:
-            if "files_ingested" in st.session_state and st.session_state.files_ingested:
-                if "ingested_files" in st.session_state and st.session_state.ingested_files:
-                    st.info(f"You can ask questions about these simulation files: {', '.join(st.session_state.ingested_files)}")
-                    with st.expander("Example questions you can ask"):
-                        st.write("- What is the average bandwidth in the flow_bandwidth.csv file?")
-                        st.write("- How many nodes are in the simulation?")
-                        st.write("- Summarize the connection information data.")
-
-            # Load chat history from database
-            if "chat_history" not in st.session_state:
-                st.session_state.chat_history = load_chat_history(simulation_id)
-
-            # Display chat history - create a scrollable area
-            chat_area = st.container()
-            with chat_area:
-                # Add some spacing before messages
-                st.write("")
-                
-                # Display all past messages
-                for question, answer in st.session_state.chat_history:
-                    with st.chat_message("user"):
-                        st.write(question)
-                    with st.chat_message("assistant"):
-                        st.write(answer)
-
-        # Input field fixed at the bottom
-        with input_container:
-            if "files_ingested" in st.session_state and st.session_state.files_ingested:
-                user_question = st.chat_input("Ask about your simulation data...")
-
-                if user_question:
-                    # First add to chat history
-                    st.session_state.chat_history.append((user_question, ""))
-                    # Then rerun to show the user message before processing starts
-                    st.rerun()
-                
-                # Check if we have an unprocessed question (empty answer)
-                if st.session_state.chat_history and st.session_state.chat_history[-1][1] == "":
-                    # Get the unprocessed question
-                    pending_question = st.session_state.chat_history[-1][0]
-                    # Update UI to show processing
-                    with chat_container:
-                        with st.chat_message("user"):
-                            st.write(pending_question)
-                        with st.chat_message("assistant"):
-                            try:
-                                with st.spinner("Analyzing simulation data..."):
-                                    answer = generate_response(pending_question, run_dir=experiment.get("run_dir"))
-                                    st.write(answer)
-                                    # Update the empty answer in chat history
-                                    st.session_state.chat_history[-1] = (pending_question, answer)
-                                    # Save to database
-                                    save_chat_message(simulation_id, pending_question, answer)
-                            except Exception as e:
-                                error_message = f"Error generating response: {str(e)}"
-                                st.error(error_message)
-                                # Add technical details that can be expanded/collapsed
-                                with st.expander("Technical error details"):
-                                    import traceback
-                                    st.code(traceback.format_exc(), language="python")
-                                # Update the empty answer in chat history
-                                st.session_state.chat_history[-1] = (pending_question, error_message)
-                                # Save error to database too
-                                save_chat_message(simulation_id, pending_question, error_message)
-            else:
-                st.warning("Chat is only available for finished experiments with processed output files. Please ensure your experiment is complete and the data has been processed successfully.")
-
-                # Add button to try processing files if they exist but weren't processed
-                if experiment and experiment.get("state") == "Finished" and experiment.get("run_dir"):
-                    if st.button("Process Files for Chat"):
-                        with st.spinner("Processing simulation files..."):
-                            st.session_state.files_ingested = ingest_experiment_data(experiment)
-        
-        # Add autoscroll at the very end - use window.scrollTo for best compatibility
-        components.html(
-            """
-            <script>
-            // Use MutationObserver to detect when new messages are added
-            const observer = new MutationObserver((mutations) => {
-                window.scrollTo(0, document.body.scrollHeight);
-            });
-            
-            // Start observing the document body for changes
-            observer.observe(document.body, { childList: true, subtree: true });
-            
-            // Also do an initial scroll to bottom
-            window.scrollTo(0, document.body.scrollHeight);
-            </script>
-            """,
-            height=0
-        )
+        render_chat_tab(simulation_id, experiment)
 
 def main():
     st.title("Experiment Details")

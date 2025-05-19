@@ -16,25 +16,37 @@ def analyze_bandwidth_for_chat(run_dir=None, query=None):
     if not run_dir:
         return "No simulation run directory provided. Please specify a valid simulation."
     
+    # Convert relative path to absolute if needed
+    if not os.path.isabs(run_dir):
+        try:
+            from conf import FLOODNS_ROOT
+            absolute_run_dir = os.path.join(FLOODNS_ROOT, run_dir)
+        except ImportError:
+            return "Error: FLOODNS_ROOT is not defined. Cannot resolve relative path."
+    else:
+        absolute_run_dir = run_dir
+    
     # Check if run_dir points to a specific simulation or a parent directory
-    flow_bandwidth_path = os.path.join(run_dir, "flow_bandwidth.csv")
-    logs_flow_bandwidth_path = os.path.join(run_dir, "logs_floodns", "flow_bandwidth.csv")
+    flow_bandwidth_path = os.path.join(absolute_run_dir, "flow_bandwidth.csv")
+    logs_flow_bandwidth_path = os.path.join(absolute_run_dir, "logs_floodns", "flow_bandwidth.csv")
     
     # If we don't find the file directly, we might be at a higher level directory
     if not os.path.exists(flow_bandwidth_path) and not os.path.exists(logs_flow_bandwidth_path):
         # Try to find any flow_bandwidth.csv files in subdirectories
-        pattern = os.path.join(run_dir, "**", "flow_bandwidth.csv")
+        pattern = os.path.join(absolute_run_dir, "**", "flow_bandwidth.csv")
         bandwidth_files = glob.glob(pattern, recursive=True)
         
         if bandwidth_files:
             # Use the first found directory containing flow_bandwidth.csv
             parent_dir = os.path.dirname(bandwidth_files[0])
             if "logs_floodns" in parent_dir:
-                run_dir = os.path.dirname(parent_dir)
+                absolute_run_dir = os.path.dirname(parent_dir)
             else:
-                run_dir = parent_dir
+                absolute_run_dir = parent_dir
+        else:
+            return f"Error: No flow_bandwidth.csv files found in {absolute_run_dir} or its subdirectories"
 
-    stats = get_bandwidth_stats(run_dir=run_dir)
+    stats = get_bandwidth_stats(run_dir=absolute_run_dir)
     
     if "error" in stats:
         return f"Error: {stats['error']}"

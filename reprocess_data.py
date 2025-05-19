@@ -18,24 +18,29 @@ def reprocess_simulation_data():
     # Try to find the latest simulation run
     latest_run_dir = None
     
-    # Check floodns runs directory if it exists
-    floodns_path = os.path.join(os.getcwd(), "floodns", "runs")
-    if os.path.exists(floodns_path):
-        print(f"Checking for simulation runs in {floodns_path}")
-        
-        # Navigate through the directory structure
-        for root, dirs, files in os.walk(floodns_path):
-            # Check if this directory has logs_floodns
-            if "logs_floodns" in dirs:
-                logs_dir = os.path.join(root, "logs_floodns")
-                # Check if it contains our target files
-                target_files = ["flow_bandwidth.csv", "link_utilization.csv", "node_info.csv"]
-                has_files = any(os.path.exists(os.path.join(logs_dir, f)) for f in target_files)
-                
-                if has_files:
-                    latest_run_dir = logs_dir
-                    print(f"Found simulation data in: {latest_run_dir}")
-                    break
+    # Check if FLOODNS_ROOT is defined
+    try:
+        from conf import FLOODNS_ROOT
+        # Check floodns runs directory if it exists
+        floodns_path = os.path.join(FLOODNS_ROOT, "runs")
+        if os.path.exists(floodns_path):
+            print(f"Checking for simulation runs in {floodns_path}")
+            
+            # Navigate through the directory structure
+            for root, dirs, files in os.walk(floodns_path):
+                # Check if this directory has logs_floodns
+                if "logs_floodns" in dirs:
+                    logs_dir = os.path.join(root, "logs_floodns")
+                    # Check if it contains our target files
+                    target_files = ["flow_bandwidth.csv", "link_utilization.csv", "node_info.csv"]
+                    has_files = any(os.path.exists(os.path.join(logs_dir, f)) for f in target_files)
+                    
+                    if has_files:
+                        latest_run_dir = logs_dir
+                        print(f"Found simulation data in: {latest_run_dir}")
+                        break
+    except ImportError:
+        print("Could not import FLOODNS_ROOT from conf.py")
     
     if not latest_run_dir:
         print("Could not find simulation data automatically.")
@@ -46,9 +51,6 @@ def reprocess_simulation_data():
         else:
             print(f"Path does not exist: {user_path}")
             return False
-    
-    # Process the data
-    print(f"Processing simulation data from: {latest_run_dir}")
     
     # Drop existing collection if it exists
     db = db_client["experiment_db"]

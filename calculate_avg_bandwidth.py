@@ -107,21 +107,30 @@ def find_bandwidth_files(base_dir="floodns/runs", **filters):
     
     return filtered_files
 
-def find_specific_file(run_dir, filename="flow_bandwidth.csv"):
-    """Find a specific file in the run directory."""
-    # If the path directly points to logs_floodns directory
-    direct_path = os.path.join(run_dir, filename)
-    if os.path.exists(direct_path):
-        return direct_path
+def find_specific_file(run_dir):
+    """Find flow_bandwidth.csv in the specified run directory."""
     
-    # Try to find in logs_floodns subdirectory
-    logs_path = os.path.join(run_dir, "logs_floodns", filename)
+    # If run_dir is a relative path, convert it to absolute using FLOODNS_ROOT
+    if not os.path.isabs(run_dir):
+        try:
+            from conf import FLOODNS_ROOT
+            run_dir = os.path.join(FLOODNS_ROOT, run_dir)
+        except ImportError:
+            print("Warning: FLOODNS_ROOT is not defined. Cannot resolve relative path.")
+    
+    # Try run_dir/flow_bandwidth.csv
+    file_path = os.path.join(run_dir, "flow_bandwidth.csv")
+    if os.path.exists(file_path):
+        return file_path
+    
+    # Try run_dir/logs_floodns/flow_bandwidth.csv
+    logs_path = os.path.join(run_dir, "logs_floodns", "flow_bandwidth.csv")
     if os.path.exists(logs_path):
         return logs_path
     
-    # Try to find the file anywhere within the run_dir
-    pattern = os.path.join(run_dir, "**", filename)
-    matches = glob(pattern, recursive=True)
+    # Try recursive search
+    pattern = os.path.join(run_dir, "**", "flow_bandwidth.csv")
+    matches = glob.glob(pattern, recursive=True)
     if matches:
         return matches[0]
     

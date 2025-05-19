@@ -92,6 +92,10 @@ def check_experiment_status(run_dir):
         print("No run directory specified.")
         return False  # No run directory specified
 
+    # If run_dir is a relative path, convert it to absolute using FLOODNS_ROOT
+    if not os.path.isabs(run_dir):
+        run_dir = os.path.join(FLOODNS_ROOT, run_dir)
+
     status_file_path = os.path.join(run_dir, "run_finished.txt")
     try:
         if os.path.exists(status_file_path):
@@ -322,12 +326,18 @@ def run_simulation(simulation_id, num_jobs, num_cores, ring_size, routing, seed,
         logs_floodns_dir = os.path.join(run_dir, "logs_floodns")
         final_run_dir = logs_floodns_dir if os.path.exists(logs_floodns_dir) else run_dir
 
-        # Update the experiment with the run_dir
+        # Store the relative path instead of the absolute path
+        if final_run_dir.startswith(FLOODNS_ROOT):
+            relative_run_dir = os.path.relpath(final_run_dir, FLOODNS_ROOT)
+        else:
+            relative_run_dir = final_run_dir
+            
+        # Update the experiment with the relative run_dir
         experiments_collection.update_one(
             {"_id": ObjectId(simulation_id)},
             {
                 "$set": {
-                    "run_dir": final_run_dir
+                    "run_dir": relative_run_dir
                 }
             }
         )

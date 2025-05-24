@@ -505,12 +505,453 @@ def display_page(simulation_id):
     with tab2:
         render_chat_tab(simulation_id, experiment)
 
+def fetch_multiple_experiments(simulation_ids):
+    """
+    Fetches multiple experiments by their IDs.
+    
+    Args:
+        simulation_ids (list): List of simulation IDs
+        
+    Returns:
+        list: List of experiment dictionaries
+    """
+    experiments = []
+    for sim_id in simulation_ids:
+        experiment = fetch_experiment_details(sim_id)
+        if experiment:
+            experiments.append(experiment)
+    return experiments
+
+def display_multiple_experiments_page(simulation_ids):
+    """
+    Displays the page for multiple selected experiments.
+    
+    Args:
+        simulation_ids (list): List of simulation IDs to display
+    """
+    try:
+        experiments = fetch_multiple_experiments(simulation_ids)
+        if not experiments:
+            st.error("No valid experiments found")
+            return
+        
+        # Page title
+        experiment_names = [exp['simulation_name'] for exp in experiments]
+        st.title(f"Comparative Analysis: {len(experiments)} Experiments")
+        st.info(f"**Selected experiments:** {', '.join(experiment_names)}")
+        
+        # Add a link back to dashboard
+        st.markdown('<a href="/dashboard">← Back to Dashboard</a>', unsafe_allow_html=True)
+        
+        # Add FloodNS Framework Overview
+        with st.expander("Framework Overview", expanded=False):
+            st.markdown("""
+            ## FloodNS Framework Concepts
+            
+            ### Core Components
+            
+            - **Network(V, E, F):** Network consisting of node set *V* and link set *E* connecting these nodes. Within the network is a set of flows *F* present.
+            - **Node:** Point in the network to which links can be connected. It can function as a flow entry, relay or exit.
+            - **Link(u, v, c):** A directed edge from node *u* to node *v* with a fixed capacity *c*.
+            - **Flow(s, t, path):** A stream from start node *s* to target node *t* over a fixed *path* with a certain bandwidth.
+            - **Connection(Q, s, t):** Abstraction for an amount *Q* that is desired to be transported from *s* to *t* over a set of flows.
+            - **Event:** Core component which is user-defined.
+            - **Aftermath:** Core component which enforces some state invariant (user-defined), for example max-min fair (MMF) allocation.
+            - **Simulator:** Event-driven single-run engine that executes events.
+            
+            ### CSV Log Files
+            
+            The simulation produces these log files:
+            
+            - **flow_bandwidth.csv:** Flow bandwidth intervals
+            - **flow_info.csv:** Aggregate flow information
+            - **link_info.csv:** Aggregate link information
+            - **link_num_active_flows.csv:** Link active flows intervals
+            - **link_utilization.csv:** Link utilization intervals
+            - **node_info.csv:** Aggregate node information
+            - **node_num_active_flows.csv:** Node active flows intervals
+            - **connection_bandwidth.csv:** Connection bandwidth intervals
+            - **connection_info.csv:** Aggregate connection information
+            """)
+            
+        # Create tabs for the comparison view
+        tab1, tab2 = st.tabs(["Experiments Comparison", "Chat with Multiple Simulations"])
+
+        with tab1:
+            st.header("Experiments Overview")
+            
+            # Display summary table
+            st.subheader("Summary Comparison")
+            summary_data = []
+            for exp in experiments:
+                params_array = exp["params"].split(",")
+                summary_data.append({
+                    "Name": exp['simulation_name'],
+                    "Date": exp['date'],
+                    "State": exp['state'],
+                    "Start Time": exp['start_time'],
+                    "End Time": exp['end_time'],
+                    "Num Jobs": params_array[0],
+                    "Num Cores": params_array[1],
+                    "Ring Size": params_array[2],
+                    "Routing": params_array[3],
+                    "Seed": params_array[4],
+                    "Model": params_array[5]
+                })
+            st.dataframe(pd.DataFrame(summary_data), use_container_width=True)
+            
+            # Display output files for each experiment
+            st.subheader("Output Files by Experiment")
+            
+            # Filter finished experiments that have output files
+            finished_experiments = [exp for exp in experiments if exp.get("state") == "Finished" and exp.get("run_dir")]
+            
+            if finished_experiments:
+                # Standard file list for all experiments
+                filenames = [
+                    "flow_bandwidth.csv",
+                    "flow_info.csv",
+                    "link_info.csv",
+                    "link_num_active_flows.csv",
+                    "link_utilization.csv",
+                    "node_info.csv",
+                    "node_num_active_flows.csv",
+                    "connection_bandwidth.csv",
+                    "connection_info.csv"
+                ]
+                
+                # Create columns for each finished experiment (max 3 per row)
+                num_experiments = len(finished_experiments)
+                columns_per_row = min(3, num_experiments)
+                
+                for i in range(0, num_experiments, columns_per_row):
+                    batch = finished_experiments[i:i+columns_per_row]
+                    cols = st.columns(len(batch))
+                    
+                    for j, exp in enumerate(batch):
+                        with cols[j]:
+                            st.write(f"**{exp['simulation_name']}**")
+                            render_output_files_compact(exp["run_dir"], filenames, exp['simulation_name'])
+                        
+                # Ingest data for all experiments for LLM if not already done
+                if "multiple_files_ingested" not in st.session_state:
+                    with st.spinner("Processing simulation data for comparative chat..."):
+                        st.session_state.multiple_files_ingested = ingest_multiple_experiments_data(finished_experiments)
+            else:
+                st.write("No finished experiments with output files available.")
+
+        with tab2:
+            render_multiple_chat_tab(simulation_ids, experiments)
+            
+    except Exception as e:
+        st.error(f"Error displaying multiple experiments: {e}")
+
+def render_output_files_compact(run_dir, filenames, experiment_name=None):
+    """
+    Renders a compact list of download links for output files.
+    """
+    # If run_dir is a relative path, convert it to absolute using FLOODNS_ROOT
+    if not os.path.isabs(run_dir):
+        run_dir = os.path.join(FLOODNS_ROOT, run_dir)
+        
+    # Check if any files exist
+    files_exist = False
+    for filename in filenames:
+        file_path = os.path.join(run_dir, filename)
+        if os.path.exists(file_path):
+            files_exist = True
+            break
+    
+    if not files_exist:
+        st.write("No output files found.")
+        return
+    
+    # Display each file as a compact download button
+    for filename in filenames:
+        file_path = os.path.join(run_dir, filename)
+        if os.path.exists(file_path):
+            try:
+                # Read the file and create a download button
+                with open(file_path, "rb") as file:
+                    file_data = file.read()
+                    # Create unique key using experiment name and filename
+                    unique_key = f"download_{experiment_name}_{filename}" if experiment_name else f"download_{filename}_{hash(run_dir)}"
+                    st.download_button(
+                        label=filename,
+                        data=file_data,
+                        file_name=f"{experiment_name}_{filename}" if experiment_name else filename,
+                        mime="text/csv",
+                        use_container_width=True,
+                        key=unique_key
+                    )
+            except Exception as e:
+                st.error(f"Error reading file {filename}: {e}")
+
+def ingest_multiple_experiments_data(experiments):
+    """
+    Ingests data from multiple experiments for comparative analysis.
+    """
+    try:
+        from llm.ingest import process_and_store_data, model
+        from db_client import chat_collection, db_client
+        import glob
+        
+        # Ensure MongoDB connection is available
+        if db_client is None or chat_collection is None:
+            print("MongoDB connection not available")
+            return False
+        
+        # Drop and recreate the collection to avoid dimension conflicts
+        db = db_client["experiment_db"]
+        if "chat" in db.list_collection_names():
+            print("Dropping existing 'chat' collection to avoid dimension conflicts")
+            db.drop_collection("chat")
+        
+        print("Creating 'chat' collection in experiment_db")
+        db.create_collection("chat")
+        
+        processed_files = []
+        
+        for experiment in experiments:
+            run_dir = experiment.get("run_dir")
+            if not run_dir:
+                continue
+                
+            # If run_dir is a relative path, convert it to absolute using FLOODNS_ROOT
+            if not os.path.isabs(run_dir):
+                run_dir = os.path.join(FLOODNS_ROOT, run_dir)
+            
+            # Process all CSV files in the run directory
+            csv_files = glob.glob(os.path.join(run_dir, "*.csv"))
+            experiment_name = experiment.get("simulation_name", "Unknown")
+            
+            for file_path in csv_files:
+                filename = os.path.basename(file_path)
+                try:
+                    # Read file content and create enhanced document
+                    with open(file_path, 'r') as file:
+                        content = file.read()
+                        
+                    # Add experiment context to the content
+                    enhanced_content = f"""
+                    Experiment: {experiment_name}
+                    Simulation ID: {experiment['_id']}
+                    Parameters: {experiment.get('params', 'N/A')}
+                    File: {filename}
+                    Content:
+                    {content}
+                    """
+                    
+                    embedding = model.encode(enhanced_content).tolist()
+                    
+                    document = {
+                        "text": enhanced_content,
+                        "embedding": embedding,
+                        "filename": filename,
+                        "file_path": file_path,
+                        "experiment_name": experiment_name,
+                        "experiment_id": experiment['_id'],
+                        "experiment_params": experiment.get('params', 'N/A')
+                    }
+                    
+                    chat_collection.insert_one(document)
+                    processed_files.append(f"{experiment_name}/{filename}")
+                    print(f"Successfully processed {experiment_name}/{filename}")
+                except Exception as e:
+                    print(f"Error processing {experiment_name}/{filename}: {e}")
+        
+        # Set up vector search index after processing all files
+        if processed_files:
+            print("Setting up vector search index for multiple experiments...")
+            if setup_vector_search_index():
+                print("Vector search capabilities ready!")
+                st.success("Vector search capabilities ready!")
+            else:
+                print("Vector search setup failed. Chat may not work optimally.")
+                st.warning("Vector search setup failed. Chat may not work optimally.")
+            
+            st.success(f"Successfully processed {len(processed_files)} simulation files for comparative chat.")
+            print(f"Successfully processed {len(processed_files)} files from {len(experiments)} experiments")
+            
+            # Store processed files in session state for the chat interface
+            st.session_state.multi_ingested_files = processed_files
+        
+        return len(processed_files) > 0
+        
+    except Exception as e:
+        print(f"Error in ingest_multiple_experiments_data: {e}")
+        st.error(f"Error processing simulation files: {str(e)}")
+        return False
+
+def load_multiple_chat_history(simulation_ids):
+    """Load chat history for multiple simulations."""
+    try:
+        # Create a unique key for the combination of simulation IDs
+        combined_key = "_".join(sorted(simulation_ids))
+        
+        # For now, store chat history in session state
+        # In a production system, you might want to store this in the database
+        history_key = f"multi_chat_history_{combined_key}"
+        
+        if history_key not in st.session_state:
+            st.session_state[history_key] = []
+        
+        return st.session_state[history_key]
+    except Exception as e:
+        st.error(f"Error loading multi-chat history: {e}")
+        return []
+
+def save_multiple_chat_message(simulation_ids, question, answer):
+    """Save chat message for multiple simulations."""
+    try:
+        # Create a unique key for the combination of simulation IDs
+        combined_key = "_".join(sorted(simulation_ids))
+        history_key = f"multi_chat_history_{combined_key}"
+        
+        if history_key not in st.session_state:
+            st.session_state[history_key] = []
+        
+        st.session_state[history_key].append((question, answer))
+        return True
+    except Exception as e:
+        st.error(f"Error saving multi-chat message: {e}")
+        return False
+
+def parse_thinking_tags(text):
+    """
+    Parse a response containing <think> or <thinking> tags and return content and thinking parts.
+    """
+    import re
+    # Check for <think> tags first (newer format)
+    think_pattern = r'<think>(.*?)</think>'
+    think_match = re.search(think_pattern, text, re.DOTALL)
+    
+    if think_match:
+        thinking = think_match.group(1).strip()
+        # Remove the think tags and content from the main text
+        content = re.sub(think_pattern, '', text, flags=re.DOTALL).strip()
+        return content, thinking
+    
+    # Check for <thinking> tags (older format)
+    thinking_pattern = r'<thinking>(.*?)</thinking>'
+    thinking_match = re.search(thinking_pattern, text, re.DOTALL)
+    
+    if thinking_match:
+        thinking = thinking_match.group(1).strip()
+        # Remove the thinking tags and content from the main text
+        content = re.sub(thinking_pattern, '', text, flags=re.DOTALL).strip()
+        return content, thinking
+    
+    return text, None
+
+def render_multiple_chat_tab(simulation_ids, experiments):
+    """
+    Renders the chat tab for multiple experiments.
+    """
+    st.header("Chat with Multiple Simulations")
+    st.write("Ask questions about the selected simulations for comparative analysis.")
+    st.write(f"**Selected experiments:** {', '.join([exp['simulation_name'] for exp in experiments])}")
+    
+    # Load chat history for these simulations
+    if "multi_chat_history_loaded" not in st.session_state:
+        st.session_state.multi_chat_history = load_multiple_chat_history(simulation_ids)
+        st.session_state.multi_chat_history_loaded = True
+
+    # Information about available files and sample questions
+    if "multiple_files_ingested" in st.session_state and st.session_state.multiple_files_ingested:
+        # Count total files ingested
+        finished_experiments = [exp for exp in experiments if exp.get("state") == "Finished" and exp.get("run_dir")]
+        processed_files_info = st.session_state.get('multi_ingested_files', [])
+        
+        st.info(f"You can ask comparative questions about data from {len(finished_experiments)} experiments with {len(processed_files_info)} processed data files.")
+        
+        if processed_files_info:
+            with st.expander("View processed files"):
+                st.write(f"Processed files: {', '.join(processed_files_info)}")
+        
+        with st.expander("Example comparative questions you can ask"):
+            st.write("- Which algorithm performed best among these simulations?")
+            st.write("- Compare the average bandwidth between these experiments")
+            st.write("- What are the differences in link utilization across these simulations?")
+            st.write("- Which experiment had the highest node throughput?")
+            st.write("- Compare the connection information between the different routing algorithms")
+            st.write("- Analyze the flow patterns across all selected experiments")
+
+    # Show chat history
+    for idx, (question, answer) in enumerate(st.session_state.multi_chat_history):
+        with st.chat_message("user"):
+            st.markdown(question)
+        with st.chat_message("assistant"):
+            # Parse the answer to separate thinking part if exists
+            content, thinking = parse_thinking_tags(answer)
+            
+            # Display the main content
+            st.markdown(content)
+            
+            # Display the thinking part in a collapsible gray section if it exists
+            if thinking:
+                with st.expander("🧠 THINKING FROM MODEL"):
+                    thinking_html = thinking.replace("\n", "<br>")
+                    st.markdown(
+                        f"""
+                        <div style="background-color: #f0f0f0; padding: 10px; border-radius: 5px; color: #333;">
+                        {thinking_html}
+                        </div>
+                        """, 
+                        unsafe_allow_html=True
+                    )
+
+    # Input only if you can chat
+    if "multiple_files_ingested" in st.session_state and st.session_state.multiple_files_ingested:
+        user_question = st.chat_input("Ask a comparative question about these simulations...")
+
+        if user_question:
+            # Generate a response
+            with st.spinner("Analyzing data from multiple simulations..."):
+                try:
+                    # For multiple experiments, we need to provide context about all experiments
+                    # We'll use the first experiment's run_dir but the system should search across all data
+                    answer = generate_response(user_question, run_dir=experiments[0].get("run_dir"))
+                except Exception as e:
+                    answer = f"Error generating response: {str(e)}"
+            
+            # Save the answer to history
+            st.session_state.multi_chat_history.append((user_question, answer))
+            save_multiple_chat_message(simulation_ids, user_question, answer)
+            st.rerun()
+    else:
+        st.warning("Comparative chat is only available when multiple finished experiments have been processed. Please ensure your experiments are complete and the data has been processed successfully.")
+        
+        finished_experiments = [exp for exp in experiments if exp.get("state") == "Finished" and exp.get("run_dir")]
+        if finished_experiments and len(finished_experiments) >= 2:
+            if st.button("Process Files for Comparative Chat"):
+                with st.spinner("Processing simulation files from all experiments..."):
+                    st.session_state.multiple_files_ingested = ingest_multiple_experiments_data(finished_experiments)
+
+    # Autoscroll
+    st.markdown(
+        """
+        <script>
+        window.scrollTo(0, document.body.scrollHeight);
+        </script>
+        """, unsafe_allow_html=True
+    )
+
 def main():
     st.title("Experiment Details")
-    simulation_id = st.query_params["simulation_id"] if "simulation_id" in st.query_params else None
-    if simulation_id:
+    
+    # Check for multiple simulation IDs first
+    simulation_ids_param = st.query_params.get("simulation_ids")
+    simulation_id = st.query_params.get("simulation_id")
+    
+    if simulation_ids_param:
+        # Handle multiple simulations
+        simulation_ids = simulation_ids_param.split(",")
+        display_multiple_experiments_page(simulation_ids)
+    elif simulation_id:
+        # Handle single simulation (existing functionality)
         display_page(simulation_id)
     else:
-        st.error("Simulation ID is missing from the URL.")
+        st.error("Simulation ID(s) missing from the URL.")
 
 main()

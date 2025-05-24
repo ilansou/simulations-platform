@@ -5,14 +5,25 @@ import re
 
 def parse_thinking_tags(text):
     """
-    Parse a response containing <thinking> tags and return content and thinking parts.
+    Parse a response containing <think> or <thinking> tags and return content and thinking parts.
     
     Args:
-        text (str): The input text with potential <thinking> tags
+        text (str): The input text with potential <think> or <thinking> tags
     
     Returns:
         tuple: (content, thinking) where thinking may be None if not present
     """
+    # Check for <think> tags first (newer format)
+    think_pattern = r'<think>(.*?)</think>'
+    think_match = re.search(think_pattern, text, re.DOTALL)
+    
+    if think_match:
+        thinking = think_match.group(1).strip()
+        # Remove the think tags and content from the main text
+        content = re.sub(think_pattern, '', text, flags=re.DOTALL).strip()
+        return content, thinking
+    
+    # Check for <thinking> tags (older format)
     thinking_pattern = r'<thinking>(.*?)</thinking>'
     thinking_match = re.search(thinking_pattern, text, re.DOTALL)
     
@@ -21,8 +32,8 @@ def parse_thinking_tags(text):
         # Remove the thinking tags and content from the main text
         content = re.sub(thinking_pattern, '', text, flags=re.DOTALL).strip()
         return content, thinking
-    else:
-        return text, None
+    
+    return text, None
 
 def render_chat_tab(simulation_id, experiment):
     st.title("Chat with Your Simulation Data")
@@ -52,7 +63,7 @@ def render_chat_tab(simulation_id, experiment):
             
             # Display the thinking part in a collapsible gray section if it exists
             if thinking:
-                with st.expander("Click to see step-by-step thinking"):
+                with st.expander("🧠 THINKING FROM MODEL"):
                     # Creating a gray background using markdown and replacing newlines with HTML breaks
                     thinking_html = thinking.replace("\n", "<br>")
                     st.markdown(
@@ -69,38 +80,15 @@ def render_chat_tab(simulation_id, experiment):
         user_question = st.chat_input("Ask about your simulation data...")
 
         if user_question:
-            # First, add a question with an empty answer
-            st.session_state.chat_history.append((user_question, ""))
             # Generate a response
-            with st.chat_message("assistant"):
-                with st.spinner("Analyzing simulation data..."):
-                    try:
-                        answer = generate_response(user_question, run_dir=experiment.get("run_dir"))
-                    except Exception as e:
-                        answer = f"Error generating response: {str(e)}"
-                
-                # Parse the answer to separate thinking part if exists
-                content, thinking = parse_thinking_tags(answer)
-                
-                # Display the main content
-                st.markdown(content)
-                
-                # Display the thinking part in a collapsible gray section if it exists
-                if thinking:
-                    with st.expander("Click to see step-by-step thinking"):
-                        # Creating a gray background using markdown and replacing newlines with HTML breaks
-                        thinking_html = thinking.replace("\n", "<br>")
-                        st.markdown(
-                            f"""
-                            <div style="background-color: #f0f0f0; padding: 10px; border-radius: 5px; color: #333;">
-                            {thinking_html}
-                            </div>
-                            """, 
-                            unsafe_allow_html=True
-                        )
+            with st.spinner("Analyzing simulation data..."):
+                try:
+                    answer = generate_response(user_question, run_dir=experiment.get("run_dir"))
+                except Exception as e:
+                    answer = f"Error generating response: {str(e)}"
             
-            # We save the answer to history and to the database
-            st.session_state.chat_history[-1] = (user_question, answer)
+            # Save the answer to history and to the database
+            st.session_state.chat_history.append((user_question, answer))
             save_chat_message(simulation_id, user_question, answer)
             st.rerun()
     else:

@@ -441,6 +441,8 @@ def main():
             st.session_state.edit_simulation_id = None
     if "edit_simulation_modal" not in st.session_state:
         st.session_state.edit_simulation_modal = False
+    if "selected_simulations" not in st.session_state:
+        st.session_state.selected_simulations = []
         
     if st.button("New Simulation"):
         st.session_state.new_simulation_modal = True
@@ -506,7 +508,24 @@ def main():
     experiments = fetch_all_experiments()
 
     if experiments:
-        col1, col2, col3, col4, col5, col6 = st.columns([2, 2, 2, 1, 1, 2])
+        # Show "Run Together" button if 2 or more simulations are selected
+        if len(st.session_state.selected_simulations) >= 2:
+            simulation_ids_param = ",".join(st.session_state.selected_simulations)
+            st.markdown(
+                f'<a href="/experiment_details?simulation_ids={simulation_ids_param}" target="_self" style="background-color: #ff4b4b; color: white; padding: 0.5rem 1rem; text-decoration: none; border-radius: 0.5rem; display: inline-block; font-weight: bold;"> Run Together ({len(st.session_state.selected_simulations)} simulations)</a>',
+                unsafe_allow_html=True
+            )
+        
+        # Clear selection button
+        if len(st.session_state.selected_simulations) > 0:
+            col_clear, col_info = st.columns([1, 4])
+            if col_clear.button("Clear Selection"):
+                st.session_state.selected_simulations = []
+                st.rerun()
+            col_info.write(f"Selected: {len(st.session_state.selected_simulations)} simulations")
+
+        col_select, col1, col2, col3, col4, col5, col6 = st.columns([0.5, 2, 2, 2, 1, 1, 2])
+        col_select.markdown("**☑️**")
         col1.markdown("**Simulation Name**")
         col2.markdown("**Date**")
         col3.markdown("**Params**")
@@ -515,12 +534,22 @@ def main():
         col6.markdown("**Actions**")
 
         for experiment in experiments:
-            col1, col2, col3, col4, col5, col6 = st.columns([2, 2, 2, 1, 1, 2])
+            col_select, col1, col2, col3, col4, col5, col6 = st.columns([0.5, 2, 2, 2, 1, 1, 2])
 
             exp_id = experiment["_id"]
             exp_name = experiment["simulation_name"]
             exp_state = experiment["state"]
             run_dir = experiment.get("run_dir")
+
+            # Checkbox for multi-selection
+            checkbox_key = f"select_{exp_id}"
+            is_selected = col_select.checkbox("Select", key=checkbox_key, value=exp_id in st.session_state.selected_simulations, label_visibility="collapsed")
+            
+            # Update selection state
+            if is_selected and exp_id not in st.session_state.selected_simulations:
+                st.session_state.selected_simulations.append(exp_id)
+            elif not is_selected and exp_id in st.session_state.selected_simulations:
+                st.session_state.selected_simulations.remove(exp_id)
 
             is_finished = False
 

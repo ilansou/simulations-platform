@@ -1,7 +1,7 @@
 import os
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
-from llm.retrieval import get_query_results, setup_vector_search_index, get_all_multi_experiment_documents
+from llm.retrieval import get_query_results, setup_vector_search_index, get_all_multi_experiment_documents, get_all_single_experiment_documents
 from huggingface_hub import InferenceClient
 from dotenv import load_dotenv
 import pandas as pd
@@ -80,10 +80,13 @@ def generate_response(query, run_dir=None):
             print(f"Multi-experiment data detected. Using ALL {len(all_multi_docs)} documents for comprehensive analysis.")
             context_docs = all_multi_docs
         else:
-            # Single experiment or no experiment data - use standard vector search
-            context_docs = get_query_results(query, limit=5)
-            if not context_docs:
-                return "I couldn't find any relevant information in the simulation data to answer your question."
+            # Single experiment - get ALL documents for comprehensive analysis
+            all_single_docs = get_all_single_experiment_documents()
+            if all_single_docs:
+                print(f"Single experiment data detected. Using ALL {len(all_single_docs)} documents for comprehensive analysis.")
+                context_docs = all_single_docs
+            else:
+                return "I couldn't find any simulation data to answer your question."
         
         # Extract text, filenames, and experiment info for context
         contexts = []
@@ -180,20 +183,30 @@ IMPORTANT: You have access to ALL simulation data from ALL selected experiments.
 
 **Provide comprehensive comparative analysis based on ALL available simulation data:**"""
         else:
-            prompt = f"""You are an AI assistant analyzing network simulation data. 
-Use only the following context to answer the user's question.
-Be specific and extract numbers, statistics and factual information from the provided data.
-If the data contains CSV content, analyze the structure and count unique entries if needed.
-For node counts, count unique node IDs. For bandwidth questions, look for numerical values.
+            prompt = f"""You are an AI assistant performing COMPREHENSIVE ANALYSIS of network simulation data.
+
+IMPORTANT: You have access to ALL simulation files from this experiment. Use this complete dataset to provide thorough analysis.
+
+**ANALYSIS SCOPE:**
+- {len(context_docs)} total data files analyzed
+- Complete data coverage for accurate analysis
+
+**ANALYSIS INSTRUCTIONS:**
+- Analyze ALL available data files for comprehensive insights
+- Extract specific numbers, statistics and factual information from the provided data
+- If the data contains CSV content, analyze the structure and count unique entries if needed
+- For node counts, count unique node IDs. For bandwidth questions, look for numerical values
+- Provide detailed analysis based on ALL available simulation data
 
 ## FloodNS Framework Concepts:
 {FRAMEWORK_CONTEXT}
 
-## Simulation Data:
+## COMPLETE Single-Experiment Dataset ({len(context_docs)} files):
 {context_string}
 
-User Question: {query}
-Answer:"""
+**User Question:** {query}
+
+**Provide comprehensive analysis based on ALL available simulation data:**"""
         
         try:
             # Check whether to use local Ollama model or HuggingFace API
@@ -207,32 +220,25 @@ Answer:"""
             # Add reasoning block after the main answer
             if is_multi_experiment:
                 context_summary = "\n".join([f"- {doc.get('experiment_name', 'Unknown')}/{doc.get('filename', 'unknown')}" for doc in context_docs])
-                reasoning = f"""
-1. Experiments analyzed: {', '.join(experiments_found)}
-
-2. Retrieved documents from multiple experiments:
+                sources_info = f"""
+Retrieved ALL {len(context_docs)} documents from {len(experiments_found)} experiments ({', '.join(experiments_found)}):
 {context_summary}
-
-3. Comparative analysis was performed across {len(experiments_found)} experiments.
-
-4. Based on this multi-experiment data, the comparative answer above was generated.
 """
+                # Return final response with only sources for multi-experiment (no generic reasoning)
+                return f"{response}\n\n<sources>\n{sources_info}\n</sources>"
             else:
                 context_summary = "\n".join([f"- {filename}" for filename in filenames])
                 context_preview = "\n".join([doc.get("text", "")[:100] + "..." for doc in context_docs])
                 
-                reasoning = f"""
-1. Retrieved documents:
+                sources_info = f"""
+Retrieved ALL {len(context_docs)} documents from single experiment:
 {context_summary}
 
-2. Used context:
+Used context:
 {context_preview}
-
-3. Based on this information, the answer above was generated.
 """
-            
-            # Return final response with reasoning
-            return f"{response}\n\n<thinking>\n{reasoning}\n</thinking>"
+                # Return final response with only sources for single experiment (no generic reasoning)
+                return f"{response}\n\n<sources>\n{sources_info}\n</sources>"
                 
         except Exception as e:
             error_msg = str(e)
@@ -272,11 +278,21 @@ def generate_response_with_reasoning(query):
     try:
         from llm.think_step_by_step import think_step_by_step
         
-        # Retrieve relevant documents with vector search
-        context_docs = get_query_results(query, limit=5)  # Get more context for reasoning
+        # Get ALL documents for comprehensive reasoning
+        all_multi_docs = get_all_multi_experiment_documents()
         
-        if not context_docs:
-            return "I couldn't find any relevant information in the simulation data to answer your question."
+        if all_multi_docs:
+            # Multi-experiment data - use all documents
+            print(f"Multi-experiment reasoning: Using ALL {len(all_multi_docs)} documents.")
+            context_docs = all_multi_docs
+        else:
+            # Single experiment - get ALL documents
+            all_single_docs = get_all_single_experiment_documents()
+            if all_single_docs:
+                print(f"Single experiment reasoning: Using ALL {len(all_single_docs)} documents.")
+                context_docs = all_single_docs
+            else:
+                return "I couldn't find any simulation data to reason about."
         
         # Extract text and filenames for context
         contexts = []

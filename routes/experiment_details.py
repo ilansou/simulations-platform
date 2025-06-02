@@ -784,37 +784,95 @@ def ingest_multiple_experiments_data(experiments):
         return False
 
 def load_multiple_chat_history(simulation_ids):
-    """Load chat history for multiple simulations."""
+    """Load chat history for multiple simulations from database."""
     try:
+        from db_client import db_client
+        
+        if db_client is None:
+            st.warning("Database connection not available, using session state only")
+            return []
+        
         # Create a unique key for the combination of simulation IDs
         combined_key = "_".join(sorted(simulation_ids))
         
-        # For now, store chat history in session state
-        # In a production system, you might want to store this in the database
-        history_key = f"multi_chat_history_{combined_key}"
+        # Get the multi_chat collection
+        multi_chat_collection = db_client["experiment_db"]["multi_chat"]
         
-        if history_key not in st.session_state:
-            st.session_state[history_key] = []
+        # Find the chat history document for this combination
+        chat_document = multi_chat_collection.find_one({"simulation_ids_key": combined_key})
         
-        return st.session_state[history_key]
+        if chat_document and "chat_history" in chat_document:
+            return [(msg["question"], msg["answer"]) for msg in chat_document["chat_history"]]
+        
+        return []
     except Exception as e:
         st.error(f"Error loading multi-chat history: {e}")
         return []
 
 def save_multiple_chat_message(simulation_ids, question, answer):
-    """Save chat message for multiple simulations."""
+    """Save chat message for multiple simulations to database."""
     try:
+        from db_client import db_client
+        from datetime import datetime
+        
+        if db_client is None:
+            st.warning("Database connection not available, message not saved")
+            return False
+        
         # Create a unique key for the combination of simulation IDs
         combined_key = "_".join(sorted(simulation_ids))
-        history_key = f"multi_chat_history_{combined_key}"
         
-        if history_key not in st.session_state:
-            st.session_state[history_key] = []
+        # Get the multi_chat collection
+        multi_chat_collection = db_client["experiment_db"]["multi_chat"]
         
-        st.session_state[history_key].append((question, answer))
+        # Create the message document
+        message_doc = {
+            "question": question,
+            "answer": answer,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        # Update or create the chat document
+        multi_chat_collection.update_one(
+            {"simulation_ids_key": combined_key},
+            {
+                "$push": {"chat_history": message_doc},
+                "$setOnInsert": {
+                    "simulation_ids": simulation_ids,
+                    "simulation_ids_key": combined_key,
+                    "created_at": datetime.now().isoformat()
+                },
+                "$set": {"updated_at": datetime.now().isoformat()}
+            },
+            upsert=True
+        )
+        
         return True
     except Exception as e:
         st.error(f"Error saving multi-chat message: {e}")
+        return False
+
+def clear_multiple_chat_history(simulation_ids):
+    """Clear chat history for multiple simulations from database."""
+    try:
+        from db_client import db_client
+        
+        if db_client is None:
+            st.warning("Database connection not available")
+            return False
+        
+        # Create a unique key for the combination of simulation IDs
+        combined_key = "_".join(sorted(simulation_ids))
+        
+        # Get the multi_chat collection
+        multi_chat_collection = db_client["experiment_db"]["multi_chat"]
+        
+        # Delete the entire chat document for this combination
+        result = multi_chat_collection.delete_one({"simulation_ids_key": combined_key})
+        
+        return result.deleted_count > 0
+    except Exception as e:
+        st.error(f"Error clearing multi-chat history: {e}")
         return False
 
 def parse_thinking_tags(text):
@@ -844,18 +902,35 @@ def parse_thinking_tags(text):
     
     return text, None
 
+def parse_sources_tags(text):
+    """
+    Parse a response containing <sources> tags and return content and sources parts.
+    """
+    import re
+    # Check for <sources> tags
+    sources_pattern = r'<sources>(.*?)</sources>'
+    sources_match = re.search(sources_pattern, text, re.DOTALL)
+    
+    if sources_match:
+        sources = sources_match.group(1).strip()
+        # Remove the sources tags and content from the main text
+        content = re.sub(sources_pattern, '', text, flags=re.DOTALL).strip()
+        return content, sources
+    
+    return text, None
+
 def render_multiple_chat_tab(simulation_ids, experiments):
     """
     Renders the chat tab for multiple experiments.
     """
     st.header("Chat with Multiple Simulations")
     st.write("Ask questions about the selected simulations for comparative analysis.")
-    st.write(f"**Selected experiments:** {', '.join([exp['simulation_name'] for exp in experiments])}")
+
+    # Load chat history for these simulations from database
+    chat_history = load_multiple_chat_history(simulation_ids)
     
-    # Load chat history for these simulations
-    if "multi_chat_history_loaded" not in st.session_state:
-        st.session_state.multi_chat_history = load_multiple_chat_history(simulation_ids)
-        st.session_state.multi_chat_history_loaded = True
+    # Store in session state for UI consistency
+    st.session_state.multi_chat_history = chat_history
 
     # Information about available files and sample questions
     if "multiple_files_ingested" in st.session_state and st.session_state.multiple_files_ingested:
@@ -865,9 +940,17 @@ def render_multiple_chat_tab(simulation_ids, experiments):
         
         st.info(f"You can ask comparative questions about data from {len(finished_experiments)} experiments with {len(processed_files_info)} processed data files.")
         
-        if processed_files_info:
-            with st.expander("View processed files"):
-                st.write(f"Processed files: {', '.join(processed_files_info)}")
+        # Add clear history button if there's chat history
+        if len(chat_history) > 0:
+            col1, col2 = st.columns([1, 4])
+            with col1:
+                if st.button("🗑️ Clear Chat History", help="Clear all chat messages for this simulation combination"):
+                    if clear_multiple_chat_history(simulation_ids):
+                        st.success("Chat history cleared successfully!")
+                        st.session_state.multi_chat_history = []
+                        st.rerun()
+                    else:
+                        st.error("Failed to clear chat history")
         
         with st.expander("Example comparative questions you can ask"):
             st.write("- Which algorithm performed best among these simulations?")
@@ -882,31 +965,91 @@ def render_multiple_chat_tab(simulation_ids, experiments):
         with st.chat_message("user"):
             st.markdown(question)
         with st.chat_message("assistant"):
-            # Parse the answer to separate thinking part if exists
-            content, thinking = parse_thinking_tags(answer)
+            # Parse the answer to separate thinking and sources parts
+            content_with_sources, thinking = parse_thinking_tags(answer)
+            content, sources = parse_sources_tags(content_with_sources)
             
             # Display the main content
             st.markdown(content)
             
-            # Display the thinking part in a collapsible gray section if it exists
+            # Create button columns
+            button_cols = []
             if thinking:
-                with st.expander("🧠 THINKING FROM MODEL"):
+                button_cols.append("thinking")
+            if sources:
+                button_cols.append("sources")
+            
+            if button_cols:
+                # If only one button, center it; if two buttons, use columns
+                if len(button_cols) == 1:
+                    if thinking:
+                        if st.button("🧠 Show Reasoning", key=f"show_multi_thinking_{idx}", help="View the model's reasoning process"):
+                            st.session_state[f"multi_thinking_content_{idx}"] = thinking
+                    elif sources:
+                        if st.button("📋 Show Sources", key=f"show_multi_sources_{idx}", help="View retrieved documents and context"):
+                            st.session_state[f"multi_sources_content_{idx}"] = sources
+                else:
+                    # Two buttons - use columns
+                    cols = st.columns(len(button_cols))
+                    col_idx = 0
+                    
+                    # Display thinking button if exists
+                    if thinking:
+                        with cols[col_idx]:
+                            thinking_key = f"show_multi_thinking_{idx}"
+                            if st.button("🧠 Show Reasoning", key=thinking_key, help="View the model's reasoning process"):
+                                st.session_state[f"multi_thinking_content_{idx}"] = thinking
+                        col_idx += 1
+                    
+                    # Display sources button if exists
+                    if sources:
+                        with cols[col_idx]:
+                            sources_key = f"show_multi_sources_{idx}"
+                            if st.button("📋 Show Sources", key=sources_key, help="View retrieved documents and context"):
+                                st.session_state[f"multi_sources_content_{idx}"] = sources
+            
+            # Show thinking content if button was clicked
+            if st.session_state.get(f"multi_thinking_content_{idx}"):
+                with st.container():
+                    st.markdown("**Model's Reasoning Process:**")
                     thinking_html = thinking.replace("\n", "<br>")
                     st.markdown(
                         f"""
-                        <div style="background-color: #f0f0f0; padding: 10px; border-radius: 5px; color: #333;">
+                        <div style="background-color: #f0f0f0; padding: 10px; border-radius: 5px; color: #333; border-left: 4px solid #007acc;">
                         {thinking_html}
                         </div>
                         """, 
                         unsafe_allow_html=True
                     )
+                    # Add close button
+                    if st.button("❌ Hide Reasoning", key=f"hide_multi_thinking_{idx}"):
+                        st.session_state[f"multi_thinking_content_{idx}"] = None
+                        st.rerun()
+            
+            # Show sources content if button was clicked
+            if st.session_state.get(f"multi_sources_content_{idx}"):
+                with st.container():
+                    st.markdown("**Retrieved Documents & Context:**")
+                    sources_html = sources.replace("\n", "<br>")
+                    st.markdown(
+                        f"""
+                        <div style="background-color: #f9f9f9; padding: 10px; border-radius: 5px; color: #333; border-left: 4px solid #28a745;">
+                        {sources_html}
+                        </div>
+                        """, 
+                        unsafe_allow_html=True
+                    )
+                    # Add close button
+                    if st.button("❌ Hide Sources", key=f"hide_multi_sources_{idx}"):
+                        st.session_state[f"multi_sources_content_{idx}"] = None
+                        st.rerun()
 
     # Input only if you can chat
     if "multiple_files_ingested" in st.session_state and st.session_state.multiple_files_ingested:
         user_question = st.chat_input("Ask a comparative question about these simulations...")
 
         if user_question:
-            # Generate a response
+            # Generate a response without immediate display
             with st.spinner("Analyzing data from multiple simulations..."):
                 try:
                     # For multiple experiments, we need to provide context about all experiments
@@ -915,9 +1058,10 @@ def render_multiple_chat_tab(simulation_ids, experiments):
                 except Exception as e:
                     answer = f"Error generating response: {str(e)}"
             
-            # Save the answer to history
-            st.session_state.multi_chat_history.append((user_question, answer))
-            save_multiple_chat_message(simulation_ids, user_question, answer)
+            # Save the conversation to database and rerun to display it
+            success = save_multiple_chat_message(simulation_ids, user_question, answer)
+            if not success:
+                print(f"Warning: Failed to save multi-chat message to database for IDs: {simulation_ids}")
             st.rerun()
     else:
         st.warning("Comparative chat is only available when multiple finished experiments have been processed. Please ensure your experiments are complete and the data has been processed successfully.")

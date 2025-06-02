@@ -19,14 +19,41 @@ def load_chat_history(simulation_id):
 
 def save_chat_message(simulation_id, question, answer):
     try:
-        experiments_collection.update_one(
+        result = experiments_collection.update_one(
             {"_id": ObjectId(simulation_id)},
             {"$push": {
                 "chat_history": {"question": question, "answer": answer, "timestamp": datetime.now().isoformat()}}}
         )
-        return True
+        
+        if result.modified_count > 0:
+            return True
+        else:
+            print(f"Warning: No document was modified when saving chat message for simulation {simulation_id}")
+            return False
+            
     except Exception as e:
         st.error(f"Error saving chat message: {e}")
+        print(f"Error saving chat message for simulation {simulation_id}: {e}")
+        return False
+
+
+def clear_chat_history(simulation_id):
+    """Clear chat history for a single simulation from database."""
+    try:
+        result = experiments_collection.update_one(
+            {"_id": ObjectId(simulation_id)},
+            {"$unset": {"chat_history": ""}}
+        )
+        
+        if result.modified_count > 0:
+            return True
+        else:
+            # Check if document exists but had no chat_history to clear
+            document = experiments_collection.find_one({"_id": ObjectId(simulation_id)})
+            return document is not None
+            
+    except Exception as e:
+        st.error(f"Error clearing chat history: {e}")
         return False
 
 

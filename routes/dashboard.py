@@ -441,8 +441,6 @@ def main():
             st.session_state.edit_simulation_id = None
     if "edit_simulation_modal" not in st.session_state:
         st.session_state.edit_simulation_modal = False
-    if "selected_simulations" not in st.session_state:
-        st.session_state.selected_simulations = []
         
     if st.button("New Simulation"):
         st.session_state.new_simulation_modal = True
@@ -508,22 +506,30 @@ def main():
     experiments = fetch_all_experiments()
 
     if experiments:
+        # Initialize selection state if needed
+        if "selected_simulations" not in st.session_state:
+            st.session_state.selected_simulations = []
+        
         # Show "Run Together" button if 2 or more simulations are selected
-        if len(st.session_state.selected_simulations) >= 2:
+        selected_count = len(st.session_state.selected_simulations)
+        if selected_count >= 2:
             simulation_ids_param = ",".join(st.session_state.selected_simulations)
+            
+            # Run Together button
             st.markdown(
-                f'<a href="/experiment_details?simulation_ids={simulation_ids_param}" target="_self" style="background-color: #ff4b4b; color: white; padding: 0.5rem 1rem; text-decoration: none; border-radius: 0.5rem; display: inline-block; font-weight: bold;"> Run Together ({len(st.session_state.selected_simulations)} simulations)</a>',
+                f'<a href="experiment_details?simulation_ids={simulation_ids_param}" target="_self" style="background-color: #ff4b4b; color: white; padding: 0.5rem 1rem; text-decoration: none; border-radius: 0.5rem; display: inline-block; font-weight: bold; margin-bottom: 1rem;"> Run Together ({selected_count} simulations)</a>',
                 unsafe_allow_html=True
             )
         
         # Clear selection button
-        if len(st.session_state.selected_simulations) > 0:
+        if selected_count > 0:
             col_clear, col_info = st.columns([1, 4])
-            if col_clear.button("Clear Selection"):
+            if col_clear.button("Clear Selection", help="Clear all selected simulations"):
                 st.session_state.selected_simulations = []
                 st.rerun()
-            col_info.write(f"Selected: {len(st.session_state.selected_simulations)} simulations")
+            col_info.write(f"Selected: {selected_count} simulations")
 
+        # Display experiment table
         col_select, col1, col2, col3, col4, col5, col6 = st.columns([0.5, 2, 2, 2, 1, 1, 2])
         col_select.markdown("**☑️**")
         col1.markdown("**Simulation Name**")
@@ -533,67 +539,98 @@ def main():
         col5.markdown("**Check**")  # New column for status check button
         col6.markdown("**Actions**")
 
+        # Helper function to handle checkbox changes
+        def handle_checkbox_change(exp_id):
+            """Handle checkbox state changes with proper state management"""
+            try:
+                checkbox_key = f"select_{exp_id}"
+                if checkbox_key in st.session_state:
+                    is_checked = st.session_state[checkbox_key]
+                    
+                    # Ensure selected_simulations list exists
+                    if "selected_simulations" not in st.session_state:
+                        st.session_state.selected_simulations = []
+                    
+                    # Thread-safe update of selection state
+                    if is_checked and exp_id not in st.session_state.selected_simulations:
+                        st.session_state.selected_simulations.append(exp_id)
+                    elif not is_checked and exp_id in st.session_state.selected_simulations:
+                        st.session_state.selected_simulations.remove(exp_id)
+            except Exception as e:
+                # If there's any error, just ignore it to prevent crashes
+                print(f"Error in checkbox change handler for {exp_id}: {e}")
+                pass
+
         for experiment in experiments:
-            col_select, col1, col2, col3, col4, col5, col6 = st.columns([0.5, 2, 2, 2, 1, 1, 2])
+            try:
+                col_select, col1, col2, col3, col4, col5, col6 = st.columns([0.5, 2, 2, 2, 1, 1, 2])
 
-            exp_id = experiment["_id"]
-            exp_name = experiment["simulation_name"]
-            exp_state = experiment["state"]
-            run_dir = experiment.get("run_dir")
+                exp_id = experiment["_id"]
+                exp_name = experiment["simulation_name"]
+                exp_state = experiment["state"]
+                run_dir = experiment.get("run_dir")
 
-            # Checkbox for multi-selection
-            checkbox_key = f"select_{exp_id}"
-            is_selected = col_select.checkbox("Select", key=checkbox_key, value=exp_id in st.session_state.selected_simulations, label_visibility="collapsed")
-            
-            # Update selection state
-            if is_selected and exp_id not in st.session_state.selected_simulations:
-                st.session_state.selected_simulations.append(exp_id)
-            elif not is_selected and exp_id in st.session_state.selected_simulations:
-                st.session_state.selected_simulations.remove(exp_id)
+                # Checkbox for multi-selection with proper on_change callback
+                checkbox_key = f"select_{exp_id}"
+                is_currently_selected = exp_id in st.session_state.selected_simulations
+                
+                col_select.checkbox(
+                    "Select", 
+                    key=checkbox_key,
+                    value=is_currently_selected,
+                    label_visibility="collapsed",
+                    on_change=handle_checkbox_change,
+                    args=(exp_id,)
+                )
 
-            is_finished = False
+                is_finished = False
 
-            # # Check if status is running and need to check the file
-            # if exp_state == "Running" and run_dir:
-            #     is_finished = check_experiment_status(run_dir)
-            #     if is_finished:
-            #         # Update DB if file indicates experiment is finished
-            #         update_experiment_status(exp_id)
-            #         st.rerun()  # Refresh to update UI
+                # # Check if status is running and need to check the file
+                # if exp_state == "Running" and run_dir:
+                #     is_finished = check_experiment_status(run_dir)
+                #     if is_finished:
+                #         # Update DB if file indicates experiment is finished
+                #         update_experiment_status(exp_id)
+                #         st.rerun()  # Refresh to update UI
 
-            # Only show link if experiment is finished or manually indicate it's finished from file
-            if exp_state == "Finished" or is_finished:
-                col1.markdown(
-                    f'<a href="/experiment_details?simulation_id={exp_id}">{exp_name}</a>',
-                    unsafe_allow_html=True)
-            else:
-                col1.text(exp_name)  # Just show text without link
+                # Only show link if experiment is finished or manually indicate it's finished from file
+                if exp_state == "Finished" or is_finished:
+                    col1.markdown(
+                        f'<a href="/experiment_details?simulation_id={exp_id}">{exp_name}</a>',
+                        unsafe_allow_html=True)
+                else:
+                    col1.text(exp_name)  # Just show text without link
 
-            col2.text(experiment["date"])
-            col3.text(experiment["params"])
+                col2.text(experiment["date"])
+                col3.text(experiment["params"])
 
-            status_icon = "✅" if exp_state == "Finished" else "⏳"
-            col4.text(status_icon)
+                status_icon = "✅" if exp_state == "Finished" else "⏳"
+                col4.text(status_icon)
 
-            # Add check button for running experiments
-            if exp_state == "Running":
-                check_button_key = f"check_status_{exp_id}"
-                if col5.button("🔄", key=check_button_key, help="Check if experiment is finished"):
-                    if check_experiment_status(run_dir):
-                        update_experiment_status(exp_id)
-                        st.rerun()
-                    else:
-                        st.warning(f"Experiment '{exp_name}' is still running.")
-            else:
-                col5.write("")  # Empty placeholder to maintain column alignment
+                # Add check button for running experiments
+                if exp_state == "Running":
+                    check_button_key = f"check_status_{exp_id}"
+                    if col5.button("🔄", key=check_button_key, help="Check if experiment is finished"):
+                        if check_experiment_status(run_dir):
+                            update_experiment_status(exp_id)
+                            st.rerun()
+                        else:
+                            st.warning(f"Experiment '{exp_name}' is still running.")
+                else:
+                    col5.write("")  # Empty placeholder to maintain column alignment
 
-            action = col6.selectbox(
-                'Select Action',
-                ['', 'Re-Run', 'Edit', 'Delete', 'Stop'],
-                key=f"action_{exp_id}"
-            )
+                action = col6.selectbox(
+                    'Select Action',
+                    ['', 'Re-Run', 'Edit', 'Delete', 'Stop'],
+                    key=f"action_{exp_id}"
+                )
 
-            if action:
-                handle_action_change(action, exp_id)
+                if action:
+                    handle_action_change(action, exp_id)
+                    
+            except Exception as e:
+                st.error(f"Error rendering experiment {experiment.get('_id', 'unknown')}: {str(e)}")
+                print(f"Error rendering experiment: {e}")
+                continue
 
 main()

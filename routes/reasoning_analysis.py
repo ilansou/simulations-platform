@@ -85,12 +85,23 @@ def app():
                 result = analyze_and_explain(query, run_dir, use_api)
                 
                 # Display reasoning
-                st.subheader("Step-by-Step Reasoning Process")
-                st.markdown(result["reasoning"])
+                st.subheader("Analysis Results")
                 
-                # Display final result
-                st.subheader("Final Answer")
+                # Display final result first
                 st.success(result["result"])
+                
+                # Display reasoning in collapsible section with gray background
+                with st.expander("Click to see step-by-step thinking"):
+                    # Creating a gray background using markdown and replacing newlines with HTML breaks
+                    reasoning_html = result["reasoning"].replace("\n", "<br>")
+                    st.markdown(
+                        f"""
+                        <div style="background-color: #f0f0f0; padding: 10px; border-radius: 5px; color: #333;">
+                        {reasoning_html}
+                        </div>
+                        """, 
+                        unsafe_allow_html=True
+                    )
                 
             except Exception as e:
                 st.error(f"Error during analysis: {str(e)}")

@@ -53,6 +53,88 @@ def setup_vector_search_index():
         print(f"Error creating vector search index: {e}")
         return False
 
+def get_all_multi_experiment_documents():
+    """Retrieves ALL documents for multi-experiment comprehensive analysis"""
+    if db_client is None:
+        print("Error: Database client is not available")
+        return []
+    
+    # Ensure the chat collection exists
+    db = db_client["experiment_db"]
+    if "chat" not in db.list_collection_names():
+        print("Warning: 'chat' collection does not exist in the database")
+        return []
+    
+    try:
+        # Get ALL documents that have experiment_name field (indicating multi-experiment data)
+        pipeline = [
+            {"$match": {"experiment_name": {"$exists": True, "$ne": ""}}},
+            {"$project": {
+                "_id": 0,
+                "text": 1,
+                "filename": 1,
+                "experiment_name": 1,
+                "experiment_id": 1,
+                "experiment_params": 1
+            }}
+        ]
+        
+        results = list(chat_collection.aggregate(pipeline))
+        
+        # Group by experiment for logging
+        experiments = {}
+        for doc in results:
+            exp_name = doc.get("experiment_name", "Unknown")
+            if exp_name not in experiments:
+                experiments[exp_name] = []
+            experiments[exp_name].append(doc.get("filename", "unknown"))
+        
+        print(f"Retrieved ALL {len(results)} documents from {len(experiments)} experiments:")
+        for exp_name, files in experiments.items():
+            print(f"  {exp_name}: {len(files)} files ({', '.join(files[:3])}{'...' if len(files) > 3 else ''})")
+        
+        return results
+    
+    except Exception as e:
+        print(f"Error retrieving all multi-experiment documents: {e}")
+        return []
+
+def get_all_single_experiment_documents():
+    """Retrieves ALL documents for single experiment comprehensive analysis"""
+    if db_client is None:
+        print("Error: Database client is not available")
+        return []
+    
+    # Ensure the chat collection exists
+    db = db_client["experiment_db"]
+    if "chat" not in db.list_collection_names():
+        print("Warning: 'chat' collection does not exist in the database")
+        return []
+    
+    try:
+        # Get ALL documents that DON'T have experiment_name field (indicating single-experiment data)
+        pipeline = [
+            {"$match": {"experiment_name": {"$exists": False}}},
+            {"$project": {
+                "_id": 0,
+                "text": 1,
+                "filename": 1
+            }}
+        ]
+        
+        results = list(chat_collection.aggregate(pipeline))
+        
+        # Log what we found
+        filenames = [doc.get("filename", "unknown") for doc in results]
+        print(f"Retrieved ALL {len(results)} documents from single experiment:")
+        print(f"  Files: {', '.join(filenames)}")
+        
+        return results
+    
+    except Exception as e:
+        print(f"Error retrieving all single-experiment documents: {e}")
+        return []
+
 def get_query_results(query, limit=5):
     """Gets results from a vector search query using MongoDB vector search"""
     # Check database connection

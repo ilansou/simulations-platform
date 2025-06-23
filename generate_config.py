@@ -117,7 +117,6 @@ def save_configurations_to_json(configurations, output_file="configurations.json
     
     with open(output_path, 'w') as f:
         json.dump(configurations, f, indent=4)
-    print(f"Configurations saved to {output_path}")
 
 def main():
     # Generate all valid configurations
@@ -125,18 +124,6 @@ def main():
     
     # Save configurations to JSON file
     save_configurations_to_json(configurations)
-    
-    # Print a summary of configurations
-    print(f"Generated and saved {len(configurations)} valid configurations")
-    
-    # Print first 10 configurations for brevity
-    for i, config in enumerate(configurations[:10]):
-        ring_size_str = "different ring size" if config["ring_size"] == "different" else f"ring size {config['ring_size']}"
-        model_str = f", model: {config['model']}" if config["model"] else ""
-        print(f"Config {i+1}: {config['num_jobs']} jobs, {config['n_core_failures']} core failures, {ring_size_str}, {config['routing']}, seed {config['seed']}{model_str}")
-    
-    if len(configurations) > 10:
-        print(f"... and {len(configurations) - 10} more configurations")
 
 if __name__ == "__main__":
     main()

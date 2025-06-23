@@ -404,15 +404,12 @@ def display_page(simulation_id):
 
             with col1:
                 st.button("Re-run", on_click=lambda: re_run_experiment(simulation_id))
-                print("run_dir:", experiment.get("run_dir"))
-                print("state:", experiment.get("state"))
                 
             with col2:
                 st.button("Edit", on_click=lambda: st.session_state.update({"edit_experiment_modal": True}))
             with col3:
                 st.button("Delete", on_click=lambda: delete_experiment(simulation_id))
             if experiment.get("state") == "Running":
-                    print("run dir:", experiment["run_dir"])
                     if st.button("🔄"): 
                         if check_experiment_status(experiment.get("run_dir")):
                             experiments_collection.update_one(
@@ -698,16 +695,14 @@ def ingest_multiple_experiments_data(experiments):
         
         # Ensure MongoDB connection is available
         if db_client is None or chat_collection is None:
-            print("MongoDB connection not available")
             return False
         
         # Drop and recreate the collection to avoid dimension conflicts
         db = db_client["experiment_db"]
         if "chat" in db.list_collection_names():
-            print("Dropping existing 'chat' collection to avoid dimension conflicts")
+    
             db.drop_collection("chat")
         
-        print("Creating 'chat' collection in experiment_db")
         db.create_collection("chat")
         
         processed_files = []
@@ -756,30 +751,26 @@ def ingest_multiple_experiments_data(experiments):
                     
                     chat_collection.insert_one(document)
                     processed_files.append(f"{experiment_name}/{filename}")
-                    print(f"Successfully processed {experiment_name}/{filename}")
+    
                 except Exception as e:
-                    print(f"Error processing {experiment_name}/{filename}: {e}")
+                    pass
         
         # Set up vector search index after processing all files
         if processed_files:
-            print("Setting up vector search index for multiple experiments...")
             if setup_vector_search_index():
-                print("Vector search capabilities ready!")
                 st.success("Vector search capabilities ready!")
             else:
-                print("Vector search setup failed. Chat may not work optimally.")
                 st.warning("Vector search setup failed. Chat may not work optimally.")
             
             st.success(f"Successfully processed {len(processed_files)} simulation files for comparative chat.")
-            print(f"Successfully processed {len(processed_files)} files from {len(experiments)} experiments")
+    
             
             # Store processed files in session state for the chat interface
             st.session_state.multi_ingested_files = processed_files
         
         return len(processed_files) > 0
         
-    except Exception as e:
-        print(f"Error in ingest_multiple_experiments_data: {e}")
+            except Exception as e:
         st.error(f"Error processing simulation files: {str(e)}")
         return False
 
@@ -1060,8 +1051,6 @@ def render_multiple_chat_tab(simulation_ids, experiments):
             
             # Save the conversation to database and rerun to display it
             success = save_multiple_chat_message(simulation_ids, user_question, answer)
-            if not success:
-                print(f"Warning: Failed to save multi-chat message to database for IDs: {simulation_ids}")
             st.rerun()
     else:
         st.warning("Comparative chat is only available when multiple finished experiments have been processed. Please ensure your experiments are complete and the data has been processed successfully.")

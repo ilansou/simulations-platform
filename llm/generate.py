@@ -25,7 +25,6 @@ def get_framework_context():
             framework_content = f.read()
         return framework_content
     except Exception as e:
-        print(f"Warning: Could not read framework.md: {e}")
         return "Framework document could not be loaded. Key concepts include: Network, Node, Link, Flow, Connection, Event, Aftermath, and Simulator."
 
 # Load the framework context once when the module is imported
@@ -47,7 +46,6 @@ def generate_with_ollama(prompt, model_name="deepseek-r1:1.5b"):
         result = response.json()
         return result.get("response", "").strip()
     except Exception as e:
-        print(f"Error using local Ollama model: {e}")
         return "There was an error calling the local model through Ollama."
 
 
@@ -63,9 +61,9 @@ def generate_response(query, run_dir=None):
                 # Only use bandwidth analysis if we have a run directory
                 if run_dir:
                     return analyze_bandwidth_for_chat(run_dir=run_dir, query=query)
-            except Exception as e:
-                print(f"Error in bandwidth analysis: {e}")
-                # Continue with standard response generation if bandwidth analysis fails
+                    except Exception as e:
+            # Continue with standard response generation if bandwidth analysis fails
+            pass
         
         # Check if this is a request for step-by-step reasoning
         if any(phrase in query.lower() for phrase in ["step by step", "explain your thinking", "show your work", "reasoning"]):
@@ -77,13 +75,11 @@ def generate_response(query, run_dir=None):
         
         if all_multi_docs:
             # We have multi-experiment data - use comprehensive approach
-            print(f"Multi-experiment data detected. Using ALL {len(all_multi_docs)} documents for comprehensive analysis.")
             context_docs = all_multi_docs
         else:
             # Single experiment - get ALL documents for comprehensive analysis
             all_single_docs = get_all_single_experiment_documents()
             if all_single_docs:
-                print(f"Single experiment data detected. Using ALL {len(all_single_docs)} documents for comprehensive analysis.")
                 context_docs = all_single_docs
             else:
                 return "I couldn't find any simulation data to answer your question."
@@ -242,10 +238,8 @@ Used context:
                 
         except Exception as e:
             error_msg = str(e)
-            print(f"Error in generate_response: {error_msg}")
             return fallback_parser(query, context_docs)
     except Exception as e:
-        print(f"Error in RAG pipeline: {e}")
         return f"I had trouble searching through the simulation data. Please try again or ask an administrator to check the vector search configuration."
 
 
@@ -283,13 +277,11 @@ def generate_response_with_reasoning(query):
         
         if all_multi_docs:
             # Multi-experiment data - use all documents
-            print(f"Multi-experiment reasoning: Using ALL {len(all_multi_docs)} documents.")
             context_docs = all_multi_docs
         else:
             # Single experiment - get ALL documents
             all_single_docs = get_all_single_experiment_documents()
             if all_single_docs:
-                print(f"Single experiment reasoning: Using ALL {len(all_single_docs)} documents.")
                 context_docs = all_single_docs
             else:
                 return "I couldn't find any simulation data to reason about."
@@ -322,7 +314,6 @@ def generate_response_with_reasoning(query):
         return formatted_response
         
     except Exception as e:
-        print(f"Error in reasoning pipeline: {e}")
         return f"I had trouble applying step-by-step reasoning to your question. Error: {str(e)}"
 
 
@@ -369,7 +360,6 @@ def generate_with_local_model(prompt):
         return answer.strip()
     
     except Exception as e:
-        print(f"Local model inference error: {e}")
         return generate_with_api(prompt)
 
 def generate_with_api(prompt, context_docs=None, query=None):
@@ -379,12 +369,9 @@ def generate_with_api(prompt, context_docs=None, query=None):
         hf_token = os.getenv("HF_TOKEN")
         model_name = os.getenv("MODEL_NAME")
         if not hf_token:
-            print("No Hugging Face token found. Trying without authentication...")
             client = InferenceClient()
         else:
             client = InferenceClient(token=hf_token)
-        
-        print(f"Sending request to model: {model_name}")
         
         # Generate response using the API
         response = client.text_generation(
@@ -400,15 +387,8 @@ def generate_with_api(prompt, context_docs=None, query=None):
         return answer.strip()
         
     except Exception as e:
-        print(f"API inference error: {e}")
-        
-        # Add debugging information to help troubleshoot
-        print(f"Attempted to use model: {model_name}")
-        print("Try running without HF_TOKEN by setting it to an empty string in .env")
-        
         # Use the fallback parser if context and query are available
         if context_docs and query:
-            print("Using fallback parser to extract information directly from documents")
             return fallback_parser(query, context_docs)
         
         # Manual fallback - extract information from retrieved documents to provide a basic answer
@@ -441,7 +421,6 @@ def fallback_parser(query, context_docs):
                         node_count = df[0].nunique()
                         return f"Based on the node_info.csv file, there are {node_count} unique nodes in the simulation."
                     except Exception as e:
-                        print(f"Error parsing node_info.csv: {e}")
                         # Try a basic line count approach
                         lines = text.strip().split('\n')
                         return f"Based on the node_info.csv file, there appear to be approximately {len(lines)} nodes in the simulation."
@@ -464,8 +443,8 @@ def fallback_parser(query, context_docs):
                         avg_bandwidth = bandwidth_values.mean()
                         return f"Based on {doc.get('filename')}, the average bandwidth is approximately {avg_bandwidth:.2f}."
                     except Exception as e:
-                        print(f"Error parsing bandwidth data: {e}")
                         # Try a simpler approach with regex
+                        pass
                         numbers = re.findall(r'[\d.]+', text)
                         if numbers:
                             try:

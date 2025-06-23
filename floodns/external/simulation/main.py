@@ -17,7 +17,7 @@ import logging
 
 # Set up logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.ERROR,
     format='%(asctime)s [%(levelname)s] %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
 )
@@ -37,10 +37,8 @@ def handle_pytorch_path_error():
             # Replace the problematic attribute with a normal list if needed
             if not isinstance(torch.classes.__path__, list):
                 torch.classes.__path__ = []
-        logger.info("PyTorch initialized successfully.")
         return True
     except Exception as e:
-        logger.warning(f"PyTorch initialization error (non-critical): {str(e)}")
         return False
     
 
@@ -50,11 +48,6 @@ def local_run_single_job(seed: int, n_core_failures: int, ring_size: int | str, 
 
     # Try to handle PyTorch error before running simulation
     handle_pytorch_path_error()
-
-    print(
-        f"=== local_run_single_job called with seed={seed}, n_core_failures={n_core_failures}, "
-        f"ring_size={ring_size}, model={model}, alg={alg}"
-    )
 
     # Generate the necessary files
     create_run_dir_single_job(
@@ -86,23 +79,11 @@ def local_run_single_job(seed: int, n_core_failures: int, ring_size: int | str, 
         alg.value,
     )
 
-    print(f"Run directory: {run_dir}")
-
     jar_path = Path(FLOODNS_ROOT, "floodns-basic-sim.jar")
-    if not jar_path.exists():
-        print(f"!!! JAR file not found at {jar_path}")
-    else:
-        print(f"JAR file found at {jar_path}")
 
     # Run java -jar
     proc = Popen(["java", "-jar", str(jar_path), str(run_dir)], stdout=PIPE, stderr=PIPE)
     stdout_data, stderr_data = proc.communicate()
-
-    print("=== local_run_single_job STDOUT ===")
-    print(stdout_data.decode("utf-8", errors="replace"))
-    print("=== local_run_single_job STDERR ===")
-    print(stderr_data.decode("utf-8", errors="replace"))
-    print(f"=== local_run_single_job return code: {proc.returncode}")
 
     # Return the process code (or you can return the proc itself)
     return proc
@@ -118,11 +99,6 @@ def local_run_multiple_jobs(
 
     # Try to handle PyTorch error before running simulation
     handle_pytorch_path_error()
-
-    print(
-        f"=== local_run_multiple_jobs called with seed={seed}, n_jobs={n_jobs}, "
-        f"ring_size={ring_size}, alg={alg}, n_core_failures={n_core_failures}"
-    )
 
     create_run_dir(
         num_tors=64,
@@ -151,20 +127,10 @@ def local_run_multiple_jobs(
     )
 
     jar_path = Path(FLOODNS_ROOT, "floodns-basic-sim.jar")
-    if not jar_path.exists():
-        print(f"!!! JAR file not found at {jar_path}")
-    else:
-        print(f"JAR file found at {jar_path}")
 
     # Run java -jar and wait for it to complete
     proc = Popen(["java", "-jar", str(jar_path), str(run_dir)], stdout=PIPE, stderr=PIPE)
     stdout_data, stderr_data = proc.communicate()
-
-    print("=== local_run_multiple_jobs STDOUT ===")
-    print(stdout_data.decode("utf-8", errors="replace"))
-    print("=== local_run_multiple_jobs STDERR ===")
-    print(stderr_data.decode("utf-8", errors="replace"))
-    print(f"=== local_run_multiple_jobs return code: {proc.returncode}")
 
     return proc
 
@@ -177,11 +143,6 @@ def local_run_multiple_jobs_different_ring_size(
 
     # Try to handle PyTorch error before running simulation
     handle_pytorch_path_error()
-
-    print(
-        f"=== local_run_multiple_jobs_different_ring_size called with seed={seed}, "
-        f"n_jobs={n_jobs}, n_core_failures={n_core_failures}, alg={alg}"
-    )
 
     create_run_dir(
         num_tors=64,
@@ -209,20 +170,10 @@ def local_run_multiple_jobs_different_ring_size(
     )
 
     jar_path = Path(FLOODNS_ROOT, "floodns-basic-sim.jar")
-    if not jar_path.exists():
-        print(f"!!! JAR file not found at {jar_path}")
-    else:
-        print(f"JAR file found at {jar_path}")
 
     # Run java -jar and wait for it to complete
     proc = Popen(["java", "-jar", str(jar_path), str(run_dir)], stdout=PIPE, stderr=PIPE)
     stdout_data, stderr_data = proc.communicate()
-
-    print("=== local_run_multiple_jobs_different_ring_size STDOUT ===")
-    print(stdout_data.decode("utf-8", errors="replace"))
-    print("=== local_run_multiple_jobs_different_ring_size STDERR ===")
-    print(stderr_data.decode("utf-8", errors="replace"))
-    print(f"=== local_run_multiple_jobs_different_ring_size return code: {proc.returncode}")
 
     return proc
 

@@ -22,7 +22,6 @@ def load_configurations(config_file="configurations.json"):
     with open(config_path, 'r') as f:
         configurations = json.load(f)
     
-    print(f"Loaded {len(configurations)} configurations from {config_path}")
     return configurations
 
 def run_experiment(num_jobs, seed, n_core_failures, ring_size: int | str, model, routing):
@@ -41,15 +40,12 @@ def run_experiment(num_jobs, seed, n_core_failures, ring_size: int | str, model,
     try:
         routing_enum = Routing[routing]
     except KeyError:
-        print(f"Invalid routing algorithm: {routing}")
         return False
 
     # Ensure we're using the correct FLOODNS_ROOT
-    print(f"FLOODNS_ROOT in run_experiment: {FLOODNS_ROOT}")
 
     if num_jobs == 1:
         try:
-            print(f"Running single job experiment: jobs={num_jobs}, cores={n_core_failures}, ring_size={ring_size}, routing={routing}, seed={seed}, model={model}")
             proc = local_run_single_job(
                 seed=seed,
                 n_core_failures=n_core_failures,
@@ -57,48 +53,32 @@ def run_experiment(num_jobs, seed, n_core_failures, ring_size: int | str, model,
                 model=model,
                 alg=routing_enum
             )
-            print(f"Single job simulation started with PID: {proc.pid}")
             stdout, stderr = proc.communicate()
-            print("stdout:")
-            print(stdout.decode("utf-8") if stdout else "No stdout")
-            print("stderr:")
-            print(stderr.decode("utf-8") if stderr else "No stderr")
             
             if proc.returncode != 0:
-                print(f"Single job experiment failed with return code {proc.returncode}")
                 success = False 
                 
         except Exception as e:
-            print(f"Error running single job experiment: {str(e)}")
             success = False
 
     if num_jobs > 1 and ring_size == "different":
         try:
-            print(f"Running multiple jobs experiment (different ring size): jobs={num_jobs}, cores={n_core_failures}, routing={routing}, seed={seed}")
             proc = local_run_multiple_jobs_different_ring_size(
                 seed=seed,
                 n_jobs=num_jobs,
                 n_core_failures=n_core_failures,
                 alg=routing_enum
             )
-            print(f"Multiple jobs (different ring size) simulation started with PID: {proc.pid}")
             stdout, stderr = proc.communicate()
-            print("stdout:")
-            print(stdout.decode("utf-8") if stdout else "No stdout")
-            print("stderr:")
-            print(stderr.decode("utf-8") if stderr else "No stderr")
             
             if proc.returncode != 0:
-                print(f"Multiple jobs (different ring size) experiment failed with return code {proc.returncode}")
                 success = False
 
         except Exception as e:
-            print(f"Error running multiple jobs (different ring size) experiment: {str(e)}")
             success = False
 
     if num_jobs > 1 and ring_size != "different":
         try:
-            print(f"Running multiple jobs experiment (same ring size): jobs={num_jobs}, cores={n_core_failures}, ring_size={ring_size}, routing={routing}, seed={seed}")
             proc = local_run_multiple_jobs(
                 seed=seed,
                 n_jobs=num_jobs,
@@ -106,19 +86,12 @@ def run_experiment(num_jobs, seed, n_core_failures, ring_size: int | str, model,
                 n_core_failures=n_core_failures,
                 alg=routing_enum
             )
-            print(f"Multiple jobs (same ring size) simulation started with PID: {proc.pid}")
             stdout, stderr = proc.communicate()
-            print("stdout:")
-            print(stdout.decode("utf-8") if stdout else "No stdout")
-            print("stderr:")
-            print(stderr.decode("utf-8") if stderr else "No stderr")
             
             if proc.returncode != 0:
-                print(f"Multiple jobs (same ring size) experiment failed with return code {proc.returncode}")
                 success = False
                 
         except Exception as e:
-            print(f"Error running multiple jobs (same ring size) experiment: {str(e)}")
             success = False
 
     return success
@@ -127,7 +100,6 @@ def main():
     try:
         configurations = load_configurations()
     except Exception as e:
-        print(f"Failed to load configurations: {str(e)}")
         return
 
     successful_runs = 0
@@ -136,10 +108,6 @@ def main():
 
     actual_configurations = configurations[50:351]
     for i, config in enumerate(actual_configurations):
-        print(f"\nRunning experiment {i+1}/{len(configurations)}")
-        ring_size_str = "different ring size" if config["ring_size"] =="different" else f"ring size {config['ring_size']}"
-        model_str = f", model: {config['model']}" if config["model"] else ""
-        print(f"Config: {config['num_jobs']} jobs, {config['n_core_failures']} core failures, {ring_size_str}, {config['routing']}, seed {config['seed']}{model_str}")
         
         success = run_experiment(
             num_jobs=config["num_jobs"],
@@ -152,15 +120,8 @@ def main():
         
         if success:
             successful_runs += 1
-            print(f"Experiment {i+1} completed successfully")
         else:
             failed_runs += 1
-            print(f"Experiment {i+1} failed")
-    
-    print(f"\nExperiment Summary:")
-    print(f"Total experiments run: {len(configurations)}")
-    print(f"Successful runs: {successful_runs}")
-    print(f"Failed runs: {failed_runs}")
 
 if __name__ == "__main__":
     main()

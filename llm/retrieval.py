@@ -8,7 +8,6 @@ def setup_vector_search_index():
     """Setup MongoDB vector search index for the chat collection"""
     # Check if MongoDB connection is available
     if db_client is None or chat_collection is None:
-        print("MongoDB connection not available")
         return False
     
     # Define the vector search index for 384-dimensional embeddings
@@ -30,10 +29,7 @@ def setup_vector_search_index():
         index_exists = any(idx.get("name") == "vector_index" for idx in existing_indices)
         
         if index_exists:
-            print("Dropping existing vector_index...")
             chat_collection.drop_search_index("vector_index")
-        
-        print("Creating vector search index...")
         
         # Create new index
         search_index_model = SearchIndexModel(
@@ -45,24 +41,20 @@ def setup_vector_search_index():
         chat_collection.create_search_index(model=search_index_model)
         
         # Wait for index to be ready
-        print("Waiting for index to be created...")
         time.sleep(5)
         
         return True
     except Exception as e:
-        print(f"Error creating vector search index: {e}")
         return False
 
 def get_all_multi_experiment_documents():
     """Retrieves ALL documents for multi-experiment comprehensive analysis"""
     if db_client is None:
-        print("Error: Database client is not available")
         return []
     
     # Ensure the chat collection exists
     db = db_client["experiment_db"]
     if "chat" not in db.list_collection_names():
-        print("Warning: 'chat' collection does not exist in the database")
         return []
     
     try:
@@ -80,35 +72,19 @@ def get_all_multi_experiment_documents():
         ]
         
         results = list(chat_collection.aggregate(pipeline))
-        
-        # Group by experiment for logging
-        experiments = {}
-        for doc in results:
-            exp_name = doc.get("experiment_name", "Unknown")
-            if exp_name not in experiments:
-                experiments[exp_name] = []
-            experiments[exp_name].append(doc.get("filename", "unknown"))
-        
-        print(f"Retrieved ALL {len(results)} documents from {len(experiments)} experiments:")
-        for exp_name, files in experiments.items():
-            print(f"  {exp_name}: {len(files)} files ({', '.join(files[:3])}{'...' if len(files) > 3 else ''})")
-        
         return results
     
     except Exception as e:
-        print(f"Error retrieving all multi-experiment documents: {e}")
         return []
 
 def get_all_single_experiment_documents():
     """Retrieves ALL documents for single experiment comprehensive analysis"""
     if db_client is None:
-        print("Error: Database client is not available")
         return []
     
     # Ensure the chat collection exists
     db = db_client["experiment_db"]
     if "chat" not in db.list_collection_names():
-        print("Warning: 'chat' collection does not exist in the database")
         return []
     
     try:
@@ -123,29 +99,20 @@ def get_all_single_experiment_documents():
         ]
         
         results = list(chat_collection.aggregate(pipeline))
-        
-        # Log what we found
-        filenames = [doc.get("filename", "unknown") for doc in results]
-        print(f"Retrieved ALL {len(results)} documents from single experiment:")
-        print(f"  Files: {', '.join(filenames)}")
-        
         return results
     
     except Exception as e:
-        print(f"Error retrieving all single-experiment documents: {e}")
         return []
 
 def get_query_results(query, limit=5):
     """Gets results from a vector search query using MongoDB vector search"""
     # Check database connection
     if db_client is None:
-        print("Error: Database client is not available")
         return []
     
     # Ensure the chat collection exists
     db = db_client["experiment_db"]
     if "chat" not in db.list_collection_names():
-        print("Warning: 'chat' collection does not exist in the database")
         return []
     
     try:
@@ -163,9 +130,6 @@ def get_query_results(query, limit=5):
         # For general simulation questions
         elif "simulation" in query.lower():
             enhanced_query = f"{query} node_info.csv flow_info.csv link_utilization.csv"
-            
-        print(f"Original query: {query}")
-        print(f"Enhanced query: {enhanced_query}")
             
         # Generate embedding for the user query
         query_embedding = get_embedding(enhanced_query)
@@ -194,34 +158,17 @@ def get_query_results(query, limit=5):
         
         # Execute the search
         results = list(chat_collection.aggregate(pipeline))
-        
-        # Log the number of results and their filenames
-        filenames = [doc.get("filename", "unknown") for doc in results]
-        print(f"Retrieved {len(results)} results from: {', '.join(filenames)}")
-        
         return results
     
     except Exception as e:
         # Handle errors and fallback to simple retrieval if necessary
-        print(f"Vector search error: {e}")
-        
-        # Try a simple find operation as fallback
         try:
             documents = list(chat_collection.find({}, {"text": 1, "filename": 1, "_id": 0}).limit(limit))
-            print("Using fallback retrieval method")
             return documents
         except Exception as fallback_error:
-            print(f"Fallback retrieval error: {fallback_error}")
             return []
 
 # Testing function            
 if __name__ == "__main__":
-    print("Setting up vector search index...")
     setup_vector_search_index()
-    
-    print("Testing vector search with a sample query...")
     results = get_query_results("What is the average bandwidth?")
-    for result in results:
-        score = result.get("score", "N/A") 
-        filename = result.get("filename", "unknown")
-        print(f"Score: {score:.4f}, File: {filename}")

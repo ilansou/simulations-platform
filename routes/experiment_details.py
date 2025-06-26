@@ -404,6 +404,11 @@ def display_page(simulation_id):
 
             with col1:
                 st.button("Re-run", on_click=lambda: re_run_experiment(simulation_id))
+<<<<<<< HEAD
+                # print("run_dir:", experiment.get("run_dir"))
+                # print("state:", experiment.get("state"))
+=======
+>>>>>>> f3609153d39fd1aee4e569ac172ec2bc0de0ac89
                 
             with col2:
                 st.button("Edit", on_click=lambda: st.session_state.update({"edit_experiment_modal": True}))

@@ -1,6 +1,11 @@
 .venv
 .env
 
+# Ignore Python bytecode files
+__pycache__
+*.pyc
+*.pyo
+
 floodns/traffic_pairs/
 floodns/runs/
 

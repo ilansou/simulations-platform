@@ -48,7 +48,6 @@ def process_simulation_output(run_dir):
     """
     # Ensure MongoDB connection is available
     if db_client is None or chat_collection is None:
-        print("MongoDB connection not available")
         return []
     
     # If run_dir is a relative path, convert it to absolute using FLOODNS_ROOT
@@ -59,10 +58,8 @@ def process_simulation_output(run_dir):
     # Drop and recreate the collection to avoid dimension conflicts
     db = db_client["experiment_db"]
     if "chat" in db.list_collection_names():
-        print("Dropping existing 'chat' collection to avoid dimension conflicts")
         db.drop_collection("chat")
     
-    print("Creating 'chat' collection in experiment_db")
     db.create_collection("chat")
     
     # All expected CSV files from FloodNS framework documentation
@@ -82,21 +79,14 @@ def process_simulation_output(run_dir):
     
     # Automatically detect and process all CSV files in the run directory
     csv_files = glob.glob(os.path.join(run_dir, "*.csv"))
-    print(f"Found {len(csv_files)} CSV files in {run_dir}")
     
     for file_path in csv_files:
         filename = os.path.basename(file_path)
         try:
             process_and_store_data(file_path)
             processed_files.append(filename)
-            print(f"Successfully processed {filename}")
         except Exception as e:
-            print(f"Error processing {filename}: {e}")
-    
-    # Check if any expected files are missing and warn
-    for expected_file in output_files:
-        if expected_file not in processed_files:
-            print(f"Warning: Expected file {expected_file} was not found in the run directory")
+            pass
     
     return processed_files
 
